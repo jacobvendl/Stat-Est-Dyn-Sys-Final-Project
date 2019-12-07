@@ -80,12 +80,16 @@ x_plus = x0;
 P_plus = eye(4)*1e-6;
 
 
-for k = 1:N-1 % k represents k+1
+for k = 2:N-1 % k represents k+1
+    
+    ts = tvec(k-1);
+    tf = tvec(k);
    
     [F, Gamma] = F_Gamma_variant(x_plus(1),x_plus(3));
     
+    
     % 1) Time update for k+1
-    [~, x] = ode45(@(t,s)orbit_prop_func(t,s),[tvec(k) tvec(k+1)],x_plus,opts);
+    [~, x] = ode45(@(t,s)orbit_prop_func(t,s),[ts tf],x_plus,opts);
     x_minus = x(end,:)';
     P_minus = F*P_plus*F' + Gamma*Q*Gamma';
     
@@ -106,7 +110,6 @@ for k = 1:N-1 % k represents k+1
                 R_KF = blkdiag(R,R);
             end
             
-            x_plus = x_minus + K*e;
             
         end
     end
@@ -117,7 +120,7 @@ for k = 1:N-1 % k represents k+1
     else
         K = P_minus*H'*inv(H*P_minus*H'+R);
     end    
-    
+    x_plus = x_minus + K*e;
     P_plus = (eye(4) - K*H)*P_minus;
     
     
