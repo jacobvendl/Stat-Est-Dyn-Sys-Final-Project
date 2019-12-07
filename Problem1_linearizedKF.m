@@ -33,7 +33,7 @@ P = 2*pi*sqrt(r0^3/mu);  % s
 
 %STEP ONE  - generate input to truth model
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
-dx0 = [0, 0.075, 0, -0.021]'; %come back and get this with MC
+dx0 = [0, 0.075, 0, -0.021]'; 
 
 %STEP TWO - simulate perturbed ground truth state using ode45
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
