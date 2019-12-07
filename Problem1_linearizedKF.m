@@ -237,6 +237,22 @@ plot(tvec,x_perturbed(4,:),'b-','LineWidth',2)
 plot(tvec,x_hat(4,:),'r--','LineWidth',2)
 ylabel('Ydot [km/s]')
 
+figure; hold on;
+sgtitle('Linearized KF State Estimation Errors')
+subplot(4,1,1); hold on; grid on; grid minor; 
+plot(tvec,x_hat(1,:)-x_perturbed(1,:),'b-','LineWidth',2)
+ylabel('X [km]')
+subplot(4,1,2); hold on; grid on; grid minor; 
+plot(tvec,x_hat(2,:)-x_perturbed(2,:),'b-','LineWidth',2)
+ylabel('Xdot [km/s]')
+subplot(4,1,3); hold on; grid on; grid minor; 
+plot(tvec,x_hat(3,:)-x_perturbed(3,:),'b-','LineWidth',2)
+ylabel('Y [km]')
+subplot(4,1,4); hold on; grid on; grid minor; 
+plot(tvec,x_hat(4,:)-x_perturbed(4,:),'b-','LineWidth',2)
+ylabel('Ydot [km/s]')
+
+
 %propagation function
 function [ ds ] = orbit_prop_func(t,s)
 
