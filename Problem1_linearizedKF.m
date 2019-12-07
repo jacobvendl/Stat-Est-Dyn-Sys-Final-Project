@@ -3,6 +3,8 @@
 
 clear all; close all; clc
 
+T = 14000; % largest time value in given data
+
 %this script handles the linearized KF
 
 %load in data provided from Canvas
