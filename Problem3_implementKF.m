@@ -5,10 +5,20 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 clear all; close all; clc
 
+%set problem inputs
+mu = 398600;             % km^3/s^2
+r0 = 6678;               % km
+rE = 6378;               % km
+wE = 2*pi/86400;         % rad/s
+dt = 10;                 % s
+P = 2*pi*sqrt(r0^3/mu);  % s
+
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
 
-
 load('orbitdeterm_finalproj_KFdata.mat')
+
+Q = Qtrue;
+R = Rtrue;
 
 N = size(tvec,2);
 T = max(tvec);
@@ -31,6 +41,8 @@ end
 plotsensor(tvec,sensor)
 
 
+x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
+
 %% Implement Linearized Kalman Filter
 
 LKF = zeros(4,N);
@@ -52,26 +64,35 @@ plottrajectory(tvec,LKF,title,filename);
 
 
 EKF = zeros(4,N);
-% for k = 1:N % k represents k+1
-%    
-%     % 1) Time update for k+1
-%     [~, x] = ode45(@(t,s)orbit_prop_func(t,s),[tvec(k) tvec(k+1)],x_plus,opts);
-%     x_minus = x(end,:)';
-%     P_minus = F*P_plus*F' + Gamma*Q*Gamma';
-%     
-%     
-%     % 2) Measurement Update for k+1
-%     ynom_minus = function of (x_minus)
-%     H = H_variant(x_minus);
-%     e = sensor(:,k,1) - ynom_minus;
-%     K = P_minus*H'*inv(H*P_minu*H'+R);
-%     
-%     x_plus = x_minus + K*e;
-%     P_plus = (eye(4) - K*H)*P_minus;
-%     
-%     EKF(:,k) = x_plus;
-%     
-% end
+x_plus = x0;
+P_plus = eye(4)*1e-6;
+
+[F Gamma] = F_Gamma_variant(x_plus(1),x_plus(3));
+
+
+for k = 1:N % k represents k+1
+   
+    % 1) Time update for k+1
+    [~, x] = ode45(@(t,s)orbit_prop_func(t,s),[tvec(k) tvec(k+1)],x_plus,opts);
+    x_minus = x(end,:)';
+    P_minus = F*P_plus*F' + Gamma*Q*Gamma';
+    
+    
+    % 2) Measurement Update for k+1
+    H = H_variant(x_minus);
+    ynom_minus = H*x_minus;
+    
+    e = sensor(:,k,1) - ynom_minus;
+    K = P_minus*H'*inv(H*P_minu*H'+R);
+    
+    x_plus = x_minus + K*e;
+    P_plus = (eye(4) - K*H)*P_minus;
+    
+    [F Gamma] = F_Gamma_variant(x_plus(1),x_plus(3));
+    
+    EKF(:,k) = x_plus;
+    
+end
 
 title = 'Extended Kalman Filter State Trajectory';
 filename = 'ASEN5044_FP_P3_EKF.png';
