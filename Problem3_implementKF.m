@@ -40,8 +40,20 @@ end
 
 plotsensor(tvec,sensor)
 
-
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
+
+% Calculate sensor positions
+sensor_pos = zeros(4,N,12);
+for i = 1:12
+    theta = (i-1)*pi/6;
+    for t = 1:N
+        currentTime = tvec(t);
+        sensor_pos(1,t,i) = rE*cos(wE*currentTime + theta);
+        sensor_pos(2,t,i) = rE*sin(wE*currentTime + theta);
+        sensor_pos(3,t,i) = -rE*wE*sin(wE*currentTime + theta);
+        sensor_pos(4,t,i) = rE*wE*cos(wE*currentTime + theta);
+    end
+end
 
 %% Implement Linearized Kalman Filter
 
@@ -67,28 +79,47 @@ EKF = zeros(4,N);
 x_plus = x0;
 P_plus = eye(4)*1e-6;
 
-[F Gamma] = F_Gamma_variant(x_plus(1),x_plus(3));
 
-
-for k = 1:N % k represents k+1
+for k = 1:N-1 % k represents k+1
    
+    [F, Gamma] = F_Gamma_variant(x_plus(1),x_plus(3));
+    
     % 1) Time update for k+1
     [~, x] = ode45(@(t,s)orbit_prop_func(t,s),[tvec(k) tvec(k+1)],x_plus,opts);
     x_minus = x(end,:)';
     P_minus = F*P_plus*F' + Gamma*Q*Gamma';
     
     
-    % 2) Measurement Update for k+1
-    H = H_variant(x_minus);
-    ynom_minus = H*x_minus;
+    % 2) Measurement Update for k+1, work through all stations
+    H = [];
+    e_KF = [];
+    R_KF = [];
+    for i = 1:12
+        if ~isnan(sensor(1,k,i))
+            H = H_variant(x_minus,sensor_pos(:,k,i));
+            ynom_minus = H*x_minus;
+            
+            e = sensor(1:3,k,i) - ynom_minus;
+            e_KF = vertcat(e_KF,e);
+            
+            if length(e_KF) >= 4
+                R_KF = blkdiag(R,R);
+            end
+            
+            x_plus = x_minus + K*e;
+            
+        end
+    end
+    if isempty(H) == 1
+        K = zeros(4,3);
+        H = zeros(3,4);
+        e_KF = zeros(3,1);
+    else
+        K = P_minus*H'*inv(H*P_minus*H'+R);
+    end    
     
-    e = sensor(:,k,1) - ynom_minus;
-    K = P_minus*H'*inv(H*P_minu*H'+R);
-    
-    x_plus = x_minus + K*e;
     P_plus = (eye(4) - K*H)*P_minus;
     
-    [F Gamma] = F_Gamma_variant(x_plus(1),x_plus(3));
     
     EKF(:,k) = x_plus;
     
@@ -200,7 +231,17 @@ yddot = -mu/r^3 * y;
 ds = [xdot, xddot, ydot, yddot]';
 end
 
-function [ H ] = H_variant(X,Xdot,Y,Ydot,Xs,Xsdot,Ys,Ysdot)
+function [ H ] = H_variant(state, station)
+X = state(1);
+Y = state(2);
+Xdot = state(3);
+Ydot = state(4);
+
+Xs = station(1);
+Ys = station(2);
+Xsdot = station(3);
+Ysdot = station(4);
+
 %initialize H
 H = zeros(3,4);
 
