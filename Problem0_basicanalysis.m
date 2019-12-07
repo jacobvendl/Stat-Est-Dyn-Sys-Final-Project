@@ -102,21 +102,15 @@ for t=1:length(T)
     %add to dx_lin for the given simulation run
     dx_lin = horzcat(dx_lin, dx(:,t));
     
-    %calculate process noise and measurement noise for the time step
-    qk = randn(2,1);
-    wk = (Svq*qk);
-    rk = randn(3,1);
-    vk = (Svr*rk);
-    
     %propagate dx forward in time
     [F, Omega] = F_Gamma_variant(dx(1,t),dx(3,t));
-    dx(:,t+1) = F * dx(:,t) ;%+ Omega * wk;
+    dx(:,t+1) = F * dx(:,t) ;
     
     %loop through the stations and simulate linearized measurements
     for i=1:12
         if ~isnan(rho_per(i,t))
             H = H_variant(X(t),XD(t),Y(t),YD(t),Xs(i,t),XDs(i,t),Ys(i,t),YDs(i,t));
-            dy(:,t) = H*dx(:,t) + vk;
+            dy(:,t) = H*dx(:,t);
             dy_lin(3*i-2:3*i,t) = dy(:,t);
         else
             dy_lin(3*i-2:3*i,t) = [nan nan nan]';
@@ -128,39 +122,6 @@ x_sim = x_star + dx_lin';
 y_sim = y_star + dy_lin;
 
 
-%now move on to the KF, finding dx_hat
-dx_hat_plus_mat = [];
-dx_hat_plus = dx0;
-P_plus = eye(4)*1e-6; %no clue what to initialize this to, I think it's a tuning parameter
-for k=1:length(T)-1
-    dx_hat_plus_mat = horzcat(dx_hat_plus_mat, dx_hat_plus(:,k));
-    
-    [F, Gamma] = F_Gamma_variant(dx_hat_plus(1,k),dx_hat_plus(3,k));
-    dx_hat_minus(:,k+1) = F*dx_hat_plus(:,k);
-    P_minus = F*P_plus*F' + Gamma*Q*Gamma';
-    
-    H = [];
-    dy_KF = [];
-    R_KF = R;
-    %loop through the stations to establish sensor measurement at k
-    for i=1:12
-        if ~isnan(rho_per(i,k+1))
-            %find y_star at the given time, knowing that there may be two
-            %stations observing the s/c
-            dy_KF = vertcat(dy_KF, dy_lin(3*i-2:3*i,k+1));
-            H = vertcat(H,H_variant(X(k+1),XD(k+1),Y(k+1),YD(k+1),Xs(k+1),XDs(k+1),Ys(k+1),YDs(k+1)));
-            if length(dy_KF) >= 4
-                R_KF = blkdiag(R,R);
-            end
-        end
-    end
-    %TODO: figure out how to handle k with no measurement
-    K = P_minus*H'*inv(H*P_minus*H' + R_KF);
-    P_plus = (eye(4) - K*H)*P_minus;
-    
-    %update state prediction
-    dx_hat_plus(:,k+1) = dx_hat_minus(:,k+1) + K*(dy_KF - H*dx_hat_minus(:,k+1));
-end
 
 %plots for a single simulation instance, showing the noisy simulated ground
 %truth states
