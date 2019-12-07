@@ -52,26 +52,26 @@ plottrajectory(tvec,LKF,title,filename);
 
 
 EKF = zeros(4,N);
-for k = 1:N % k represents k+1
-   
-    % 1) Time update for k+1
-    [~, x] = ode45(@(t,s)orbit_prop_func(t,s),[tvec(k) tvec(k+1)],x_plus,opts);
-    x_minus = x(end,:)';
-    P_minus = F*P_plus*F' + Gamma*Q*Gamma';
-    
-    
-    % 2) Measurement Update for k+1
-    ynom_minus = function of (x_minus)
-    H = H_variant(x_minus);
-    e = sensor(:,k,1) - ynom_minus;
-    K = P_minus*H'*inv(H*P_minu*H'+R);
-    
-    x_plus = x_minus + K*e;
-    P_plus = (eye(4) - K*H)*P_minus;
-    
-    EKF(:,k) = x_plus;
-    
-end
+% for k = 1:N % k represents k+1
+%    
+%     % 1) Time update for k+1
+%     [~, x] = ode45(@(t,s)orbit_prop_func(t,s),[tvec(k) tvec(k+1)],x_plus,opts);
+%     x_minus = x(end,:)';
+%     P_minus = F*P_plus*F' + Gamma*Q*Gamma';
+%     
+%     
+%     % 2) Measurement Update for k+1
+%     ynom_minus = function of (x_minus)
+%     H = H_variant(x_minus);
+%     e = sensor(:,k,1) - ynom_minus;
+%     K = P_minus*H'*inv(H*P_minu*H'+R);
+%     
+%     x_plus = x_minus + K*e;
+%     P_plus = (eye(4) - K*H)*P_minus;
+%     
+%     EKF(:,k) = x_plus;
+%     
+% end
 
 title = 'Extended Kalman Filter State Trajectory';
 filename = 'ASEN5044_FP_P3_EKF.png';

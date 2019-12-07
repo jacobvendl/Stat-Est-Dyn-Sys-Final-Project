@@ -93,7 +93,6 @@ end
 
 %STEP FOUR - simulate linearized dynamics
 Svq = chol(Q,'lower');
-R = eye(3)*1e-6;%test R for a second
 Svr = chol(R,'lower');
 Gamma = [0 0; 1 0; 0 0; 0 1];
 dx_lin = [];
