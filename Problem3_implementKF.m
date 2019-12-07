@@ -5,6 +5,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 clear all; close all; clc
 
+opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
+
+
 load('orbitdeterm_finalproj_KFdata.mat')
 
 N = size(tvec,2);
@@ -45,11 +48,28 @@ plottrajectory(tvec,LKF,title,filename);
 
 %% Implement Extended Kalman Filter
 
+% Step 1: Initialize with x_plus_0 and P_plus_0
+
+
 EKF = zeros(4,N);
-for k = 1:N
+for k = 1:N % k represents k+1
+   
+    % 1) Time update for k+1
+    [~, x] = ode45(@(t,s)orbit_prop_func(t,s),[tvec(k) tvec(k+1)],x_plus,opts);
+    x_minus = x(end,:)';
+    P_minus = F*P_plus*F' + Gamma*Q*Gamma';
     
     
+    % 2) Measurement Update for k+1
+    ynom_minus = function of (x_minus)
+    H = H_variant(x_minus);
+    e = sensor(:,k,1) - ynom_minus;
+    K = P_minus*H'*inv(H*P_minu*H'+R);
     
+    x_plus = x_minus + K*e;
+    P_plus = (eye(4) - K*H)*P_minus;
+    
+    EKF(:,k) = x_plus;
     
 end
 
@@ -140,4 +160,60 @@ function plottrajectory(tvec,traj,title,filename)
     xlim([0 T]);
     saveas(fig,filename,'png');
 
+end
+
+function [ ds ] = orbit_prop_func(t,s)
+
+mu = 398600;
+
+x = s(1);
+y = s(3);
+r = sqrt(x^2+y^2);
+
+xdot = s(2);
+ydot = s(4);
+
+xddot = -mu/r^3 * x;
+yddot = -mu/r^3 * y;
+
+ds = [xdot, xddot, ydot, yddot]';
+end
+
+function [ H ] = H_variant(X,Xdot,Y,Ydot,Xs,Xsdot,Ys,Ysdot)
+%initialize H
+H = zeros(3,4);
+
+%first row
+H(1,1) = (X-Xs)/sqrt((X-Xs)^2+(Y-Ys)^2);
+H(1,2) = 0;
+H(1,3) = (Y-Ys)/sqrt((X-Xs)^2+(Y-Ys)^2);
+H(1,4) = 0;
+
+%second row
+H(2,1) = (Xdot-Xsdot)/sqrt((X-Xs)^2+(Y-Ys)^2) - (X-Xs)*((X-Xs)*(Xdot-Xsdot)+(Y-Ys)*(Ydot-Ysdot)) / ((X-Xs)^2+(Y-Ys)^2)^(3/2);
+H(2,3) = (Ydot-Ysdot)/sqrt((X-Xs)^2+(Y-Ys)^2) - (Y-Ys)*((X-Xs)*(Xdot-Xsdot)+(Y-Ys)*(Ydot-Ysdot)) / ((X-Xs)^2+(Y-Ys)^2)^(3/2);
+H(2,2) = (X-Xs)/sqrt((X-Xs)^2+(Y-Ys)^2);
+H(2,4) = (Y-Ys)/sqrt((X-Xs)^2+(Y-Ys)^2);
+
+%third row
+H(3,1) = ((-Y+Ys)/((X-Xs)^2+(Y-Ys)^2));
+H(3,2) = 0;
+H(3,3) = ((X-Xs)/((X-Xs)^2+(Y-Ys)^2));
+H(3,4) = 0;
+end
+
+
+function [F Omega] = F_Gamma_variant(X,Y)
+mu = 398600;        % km^3/s^2
+r0_nom = 6678;          % km
+dt = 10;
+
+A = [0, 1, 0, 0;
+    (-mu*(r0_nom)^(-3))+(3*mu*X^2*r0_nom^(-5)), 0, 3*mu*X*Y*r0_nom^(-5), 0;
+    0, 0, 0, 1;
+    (3*mu*X*Y)*r0_nom^(-5), 0, (-mu*r0_nom^(-3))+(3*mu*Y^2*r0_nom^(-5)), 0];
+F=eye(4) + dt*A;
+
+Gamma = [0 0; 1 0; 0 0; 0 1];
+Omega = dt*Gamma;
 end

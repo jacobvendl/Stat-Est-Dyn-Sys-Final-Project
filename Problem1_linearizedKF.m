@@ -38,10 +38,11 @@ dx0 = [0, 0.075, 0, -0.021]'; %come back and get this with MC
 %STEP TWO - simulate perturbed ground truth state using ode45
 s0 = x0 + dx0;
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
-[T, x_star] = ode45(@(t,s)orbit_prop_func(t,s),tvec,s0,opts);
+[T, x_star] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
+x_star=x_star';
 
 %STEP THREE = simulate ground truth measurements using ode45 result
-X=x_star(:,1); Y=x_star(:,3); XD=x_star(:,2); YD=x_star(:,4);
+X=x_star(1,:); Y=x_star(3,:); XD=x_star(2,:); YD=x_star(4,:);
 Xs = zeros(12,length(T));
 Ys = zeros(12,length(T));
 XDs = zeros(12,length(T));
@@ -109,8 +110,8 @@ for t=1:length(T)
     vk = (Svr*rk);
     
     %propagate dx forward in time
-    [F, Omega] = F_Gamma_variant(dx(1,t),dx(3,t));
-    dx(:,t+1) = F * dx(:,t) ;%+ Omega * wk;
+    [F, Omega] = F_Gamma_variant(X(t),Y(t));
+    dx(:,t+1) = F * dx(:,t) + Omega * wk;
     
     %loop through the stations and simulate linearized measurements
     for i=1:12
@@ -124,7 +125,7 @@ for t=1:length(T)
     end
 end
 %add dx_lin to x_star to get simulated noisy ground truth states
-x_sim = x_star + dx_lin';
+x_sim = x_star + dx_lin;
 y_sim = y_star + dy_lin;
 
 
@@ -135,7 +136,7 @@ P_plus = eye(4)*1e-6; %no clue what to initialize this to, I think it's a tuning
 for k=1:length(T)-1
     dx_hat_plus_mat = horzcat(dx_hat_plus_mat, dx_hat_plus(:,k));
     
-    [F, Gamma] = F_Gamma_variant(dx_hat_plus(1,k),dx_hat_plus(3,k));
+    [F, Gamma] = F_Gamma_variant(X(k),Y(k));
     dx_hat_minus(:,k+1) = F*dx_hat_plus(:,k);
     P_minus = F*P_plus*F' + Gamma*Q*Gamma';
     
@@ -154,32 +155,49 @@ for k=1:length(T)-1
             end
         end
     end
-    %TODO: figure out how to handle k with no measurement
-    K = P_minus*H'*inv(H*P_minus*H' + R_KF);
+    if isempty(H)==1
+        K=zeros(4,3);
+        H=zeros(3,4);
+        dy_KF=zeros(3,1);
+    else
+        K = P_minus*H'*inv(H*P_minus*H' + R_KF);
+    end
     P_plus = (eye(4) - K*H)*P_minus;
     
     %update state prediction
     dx_hat_plus(:,k+1) = dx_hat_minus(:,k+1) + K*(dy_KF - H*dx_hat_minus(:,k+1));
 end
 
-%plots for a single simulation instance, showing the noisy simulated ground
-%truth states
+%total states vs time for noisy linearized dynamics model
 figure; hold on;
-sgtitle(sprintf('Noisy Simulated Ground Truth States \n dx =[%.4fkm %.4fkm/s %.4fkm %.4fkm/s]',dx0(1),dx0(2),dx0(3),dx0(4)))
+sgtitle(sprintf('States vs. Time, Linearized Approximate Dynamics Simulation \n dx =[%.4fkm %.4fkm/s %.4fkm %.4fkm/s]',dx0(1),dx0(2),dx0(3),dx0(4)))
 subplot(4,1,1); hold on; grid on; grid minor;
 title('x position [km]')
-plot(tvec,x_sim(:,1),'-')
+plot(tvec,x_sim(1,:),'-')
 subplot(4,1,2); hold on; grid on; grid minor;
 title('x velocity [km/s]')
-plot(tvec,x_sim(:,2),'-')
+plot(tvec,x_sim(2,:),'-')
 subplot(4,1,3); hold on; grid on; grid minor;
 title('y position [km]')
-plot(tvec,x_sim(:,3),'-')
+plot(tvec,x_sim(3,:),'-')
 subplot(4,1,4); hold on; grid on; grid minor;
 title('y velocity [km/s]')
-plot(tvec,x_sim(:,4),'-')
+plot(tvec,x_sim(4,:),'-')
 
-
+%noisy linearized approximate measurement simulation
+figure; hold on;
+sgtitle('Approximate Linearized Noisy Measurement Simulation')
+subplot(3,1,1); hold on; grid on; grid minor; ylabel('rho^i [km]')
+subplot(3,1,2); hold on; grid on; grid minor; ylabel('rhodot^i [km/s]')
+subplot(3,1,3); hold on; grid on; grid minor; ylabel('\phi^i [rad]')
+for i=1:12
+    subplot(3,1,1); 
+    plot(tvec,y_sim(3*i-2,:),'x')
+    subplot(3,1,2);
+    plot(tvec,y_sim(3*i-1,:),'o')
+    subplot(3,1,3);
+    plot(tvec,y_sim(3*i,:),'o')
+end
 
 
 %propagation function
