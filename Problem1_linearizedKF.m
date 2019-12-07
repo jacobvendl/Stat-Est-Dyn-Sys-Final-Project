@@ -36,7 +36,6 @@ x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
 dx0 = [0, 0.075, 0, -0.021]'; %come back and get this with MC
 
 %STEP TWO - simulate perturbed ground truth state using ode45
-s0 = x0 + dx0;
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
 [T, x_star] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
 x_star=x_star';
@@ -47,9 +46,9 @@ Xs = zeros(12,length(T));
 Ys = zeros(12,length(T));
 XDs = zeros(12,length(T));
 YDs = zeros(12,length(T));
-rho_per = zeros(12,length(T));
-rhoDot_per = zeros(12,length(T));
-phi_per = zeros(12,length(T));
+rho = zeros(12,length(T));
+rhoDot = zeros(12,length(T));
+phi = zeros(12,length(T));
 y_star = zeros(36,length(T));
 %now simulate the measurements for all time
 for i=1:12 %stations
@@ -64,7 +63,7 @@ for i=1:12 %stations
         YDs(i,t) = rE*wE*cos(wE*currentTime + theta);
         
         %peform check at given time to see if s/c is visible
-        phi_per(i,t) = atan2((Y(t)-Ys(i,t)),(X(t)-Xs(i,t)));
+        phi(i,t) = atan2((Y(t)-Ys(i,t)),(X(t)-Xs(i,t)));
         thetaCheck = atan2(Ys(i,t),Xs(i,t));
         if (thetaCheck-pi/2) > (thetaCheck+pi/2)
             upperBound = thetaCheck-pi/2;
@@ -73,21 +72,21 @@ for i=1:12 %stations
             upperBound = thetaCheck+pi/2;
             lowerBound = thetaCheck-pi/2;
         end
-        if (lowerBound <= phi_per(i,t) && phi_per(i,t) <= upperBound) ...
-                || (lowerBound-2*pi <= phi_per(i,t) && phi_per(i,t)<=upperBound-2*pi)... %accomodate phi wrapping
-                || (lowerBound+2*pi <= phi_per(i,t) && phi_per(i,t)<=upperBound+2*pi)
+        if (lowerBound <= phi(i,t) && phi(i,t) <= upperBound) ...
+                || (lowerBound-2*pi <= phi(i,t) && phi(i,t)<=upperBound-2*pi)... %accomodate phi wrapping
+                || (lowerBound+2*pi <= phi(i,t) && phi(i,t)<=upperBound+2*pi)
             
-            rho_per(i,t) = sqrt((X(t)-Xs(i,t))^2 + (Y(t)-Ys(i,t))^2);
-            rhoDot_per(i,t) = ((X(t)-Xs(i,t))*(XD(t)-XDs(i,t)) + (Y(t)-Ys(i,t))*(YD(t)-YDs(i,t)))...
-                / rho_per(i,t);
+            rho(i,t) = sqrt((X(t)-Xs(i,t))^2 + (Y(t)-Ys(i,t))^2);
+            rhoDot(i,t) = ((X(t)-Xs(i,t))*(XD(t)-XDs(i,t)) + (Y(t)-Ys(i,t))*(YD(t)-YDs(i,t)))...
+                / rho(i,t);
         else
-            rho_per(i,t) = nan;
-            rhoDot_per(i,t) = nan;
-            phi_per(i,t)=nan;
+            rho(i,t) = nan;
+            rhoDot(i,t) = nan;
+            phi(i,t)=nan;
         end
-        y_star(3*i-2,t) = rho_per(i,t);
-        y_star(3*i-1,t) = rhoDot_per(i,t);
-        y_star(3*i,t) = phi_per(i,t);
+        y_star(3*i-2,t) = rho(i,t);
+        y_star(3*i-1,t) = rhoDot(i,t);
+        y_star(3*i,t) = phi(i,t);
     end
 end
 
@@ -95,38 +94,49 @@ end
 Svq = chol(Q,'lower');
 Svr = chol(R,'lower');
 Gamma = [0 0; 1 0; 0 0; 0 1];
-dx_lin = [];
-dx=dx0;
-dy_lin = zeros(36,length(T));
+x_noisy = zeros(4,length(T));
+y_noisy = zeros(36,length(T));
+rho_noisy = zeros(12,length(T));
+rhoDot_noisy = zeros(12,length(T));
+phi_noisy = zeros(12,length(T));
 for t=1:length(T)
-    %add to dx_lin for the given simulation run
-    dx_lin = horzcat(dx_lin, dx(:,t));
-    
     %calculate process noise and measurement noise for the time step
     qk = randn(2,1);
     wk = (Svq*qk);
     rk = randn(3,1);
     vk = (Svr*rk);
     
-    %propagate dx forward in time
-    [F, Omega] = F_Gamma_variant(X(t),Y(t));
-    dx(:,t+1) = F * dx(:,t) + Omega * wk;
+    %add the noise to the state output
+    x_noisy(:,t) = x_star(:,t) + dt*Gamma*wk;
     
     %loop through the stations and simulate linearized measurements
     for i=1:12
-        if ~isnan(rho_per(i,t))
-            H = H_variant(X(t),XD(t),Y(t),YD(t),Xs(i,t),XDs(i,t),Ys(i,t),YDs(i,t));
-            dy(:,t) = H*dx(:,t) + vk;
-            dy_lin(3*i-2:3*i,t) = dy(:,t);
+        phi_noisy(i,t) = atan2((x_noisy(3,t)-Ys(i,t)),(x_noisy(1,t)-Xs(i,t)));
+        thetaCheck = atan2(Ys(i,t),Xs(i,t));
+        if (thetaCheck-pi/2) > (thetaCheck+pi/2)
+            upperBound = thetaCheck-pi/2;
+            lowerBound = thetaCheck+pi/2;
         else
-            dy_lin(3*i-2:3*i,t) = [nan nan nan]';
+            upperBound = thetaCheck+pi/2;
+            lowerBound = thetaCheck-pi/2;
         end
+        if (lowerBound <= phi(i,t) && phi(i,t) <= upperBound) ...
+                || (lowerBound-2*pi <= phi(i,t) && phi(i,t)<=upperBound-2*pi)... %accomodate phi wrapping
+                || (lowerBound+2*pi <= phi(i,t) && phi(i,t)<=upperBound+2*pi)
+            
+            rho_noisy(i,t) = sqrt((x_noisy(1,t)-Xs(i,t))^2 + (x_noisy(3,t)-Ys(i,t))^2);
+            rhoDot_noisy(i,t) = ((x_noisy(1,t)-Xs(i,t))*(XD(t)-XDs(i,t)) + (x_noisy(3,t)-Ys(i,t))*(YD(t)-YDs(i,t)))...
+                / rho_noisy(i,t);
+        else
+            rho_noisy(i,t) = nan;
+            rhoDot_noisy(i,t) = nan;
+            phi_noisy(i,t)=nan;
+        end
+        y_noisy(3*i-2,t) = rho_noisy(i,t) + vk(1);
+        y_noisy(3*i-1,t) = rhoDot_noisy(i,t) + vk(2);
+        y_noisy(3*i,t) = phi_noisy(i,t) + vk(3);
     end
 end
-%add dx_lin to x_star to get simulated noisy ground truth states
-x_sim = x_star + dx_lin;
-y_sim = y_star + dy_lin;
-
 
 %now move on to the KF, finding dx_hat
 dx_hat_plus_mat = [];
@@ -144,10 +154,10 @@ for k=1:length(T)-1
     R_KF = R;
     %loop through the stations to establish sensor measurement at k
     for i=1:12
-        if ~isnan(rho_per(i,k+1))
+        if ~isnan(rho(i,k+1))
             %find y_star at the given time, knowing that there may be two
             %stations observing the s/c
-            dy_KF = vertcat(dy_KF, dy_lin(3*i-2:3*i,k+1));
+            dy_KF = vertcat(dy_KF, y_noisy(3*i-2:3*i,k+1)-y_star(3*i-2:3*i,k+1));
             H = vertcat(H,H_variant(X(k+1),XD(k+1),Y(k+1),YD(k+1),Xs(k+1),XDs(k+1),Ys(k+1),YDs(k+1)));
             if length(dy_KF) >= 4
                 R_KF = blkdiag(R,R);
@@ -171,17 +181,17 @@ end
 figure; hold on;
 sgtitle(sprintf('States vs. Time, Linearized Approximate Dynamics Simulation \n dx =[%.4fkm %.4fkm/s %.4fkm %.4fkm/s]',dx0(1),dx0(2),dx0(3),dx0(4)))
 subplot(4,1,1); hold on; grid on; grid minor;
-title('x position [km]')
-plot(tvec,x_sim(1,:),'-')
+ylabel('X [km]')
+plot(tvec,x_noisy(1,:),'-')
 subplot(4,1,2); hold on; grid on; grid minor;
-title('x velocity [km/s]')
-plot(tvec,x_sim(2,:),'-')
+ylabel('Xdot [km/s]')
+plot(tvec,x_noisy(2,:),'-')
 subplot(4,1,3); hold on; grid on; grid minor;
-title('y position [km]')
-plot(tvec,x_sim(3,:),'-')
+ylabel('Y [km]')
+plot(tvec,x_noisy(3,:),'-')
 subplot(4,1,4); hold on; grid on; grid minor;
-title('y velocity [km/s]')
-plot(tvec,x_sim(4,:),'-')
+ylabel('Ydot [km/s]')
+plot(tvec,x_noisy(4,:),'-')
 
 %noisy linearized approximate measurement simulation
 figure; hold on;
@@ -190,14 +200,42 @@ subplot(3,1,1); hold on; grid on; grid minor; ylabel('rho^i [km]')
 subplot(3,1,2); hold on; grid on; grid minor; ylabel('rhodot^i [km/s]')
 subplot(3,1,3); hold on; grid on; grid minor; ylabel('\phi^i [rad]')
 for i=1:12
-    subplot(3,1,1); 
-    plot(tvec,y_sim(3*i-2,:),'x')
+    subplot(3,1,1);
+    plot(tvec,y_noisy(3*i-2,:),'x')
     subplot(3,1,2);
-    plot(tvec,y_sim(3*i-1,:),'o')
+    plot(tvec,y_noisy(3*i-1,:),'o')
     subplot(3,1,3);
-    plot(tvec,y_sim(3*i,:),'o')
+    plot(tvec,y_noisy(3*i,:),'o')
 end
 
+%calculate state estimate
+x_hat = x_star + dx_hat_plus;
+
+%create ode45 simulation to compare against
+s0 = x0 + dx0;
+opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
+[T, x_perturbed] = ode45(@(t,s)orbit_prop_func(t,s),tvec,s0,opts);
+x_perturbed=x_perturbed';
+
+figure; hold on; 
+sgtitle(sprintf('Linearized KF plotted against Nonlinear Perturbed Simulation \n dx=[%.4fkm %.4fkm/s %.4fkm %.4fkm/s]',dx0(1),dx0(2),dx0(3),dx0(4)))
+subplot(4,1,1); hold on; grid on; grid minor;
+plot(tvec,x_perturbed(1,:),'b-','LineWidth',2)
+plot(tvec,x_hat(1,:),'r--','LineWidth',2)
+legend('ode45 perturbed','xhat+')
+ylabel('X [km]')
+subplot(4,1,2); hold on; grid on; grid minor;
+plot(tvec,x_perturbed(2,:),'b-','LineWidth',2)
+plot(tvec,x_hat(2,:),'r--','LineWidth',2)
+ylabel('Xdot [km/s]')
+subplot(4,1,3); hold on; grid on; grid minor;
+plot(tvec,x_perturbed(3,:),'b-','LineWidth',2)
+plot(tvec,x_hat(3,:),'r--','LineWidth',2)
+ylabel('Y [km]')
+subplot(4,1,4); hold on; grid on; grid minor;
+plot(tvec,x_perturbed(4,:),'b-','LineWidth',2)
+plot(tvec,x_hat(4,:),'r--','LineWidth',2)
+ylabel('Ydot [km/s]')
 
 %propagation function
 function [ ds ] = orbit_prop_func(t,s)
