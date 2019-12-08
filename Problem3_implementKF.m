@@ -100,8 +100,8 @@ for k = 2:N-1 % k represents k+1
     R_KF = [];
     for i = 1:12
         if ~isnan(sensor(1,k,i))
+            ynom_minus = measurement(x_minus,sensor_pos(:,k,i));
             H = H_variant(x_minus,sensor_pos(:,k,i));
-            ynom_minus = H*x_minus;
             
             e = sensor(1:3,k,i) - ynom_minus;
             e_KF = vertcat(e_KF,e);
@@ -146,6 +146,18 @@ end
 title = 'Unscented Kalman Filter State Trajectory';
 filename = 'ASEN5044_FP_P3_UKF.png';
 plottrajectory(tvec,UKF,title,filename);
+
+function [y] = measurement(state,station)  
+y = zeros(3,1);
+
+% rho
+y(1) = sqrt((state(1)-station(1))^2 + (state(3)-station(3))^2);
+% rhodot
+y(2) = ((state(1)-station(1))*(state(2)-station(2))...
+    + (state(3)-station(3))*(state(4)-station(4)))/ y(1);
+% phi
+y(3) = atan2((state(3)-station(3)),(state(1)-station(1)));
+end
 
 function plotsensor(tvec,sensor,n)
 
