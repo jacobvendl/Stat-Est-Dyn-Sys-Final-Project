@@ -58,8 +58,12 @@ end
 %% Implement Linearized Kalman Filter
 
 LKF = zeros(4,N);
+dx_hat_plus_mat = zeros(4,N);
+dx0 = [0, 0.075, 0, -0.021]';
+dx_hat_plus = dx0;
+P_plus = eye(4)*1e-6;
 for k = 1:N
-    
+    dx_hat_plus_mat = horzcat(dx_hat_plus_mat, dx_hat_plus(:,k));
     
     
     
