@@ -84,7 +84,7 @@ Q_KF=eye(2)*1e-16;
 R=zeros(3); R(1,1)=0.01;R(2,2)=1;R(3,3)=0.01;
 Svq = chol(Q_KF,'lower');
 Svr = chol(R,'lower');
-Gamma = [0 0; 1 0; 0 0; 0 1];
+Omega = [0 0; 1 0; 0 0; 0 1];
 
 Nsim=50;
 NEESamps = zeros(Nsim,length(tvec)-1);
@@ -96,7 +96,6 @@ for s=1:Nsim
     rhoDot_noisy = zeros(12,length(T));
     phi_noisy = zeros(12,length(T));
     y_noisy = zeros(36,length(T));
-    P_p_0 = zeros(4); P_p_0(1,1)=1e-3; P_p_0(3,3)=1e-3; P_p_0(2,2)=1e-6; P_p_0(4,4)=1e-6;
     P_p_0 = 1e3*eye(4);
     for k=1:length(tvec)
         %calculate process noise and measurement noise for the time step
@@ -104,7 +103,7 @@ for s=1:Nsim
         wk = (Svq*qk);
         
         %add the noise to the state output
-        x_noisy(:,k) = x_star(:,k) + dt*Gamma*wk;
+        x_noisy(:,k) = x_star(:,k) + dt*Omega*wk;
         
         %loop through the stations and simulate linearized measurements
         for i=1:12
@@ -147,9 +146,9 @@ for s=1:Nsim
     for k=1:length(tvec)-1
         
         %KF steps now that we have noisy data to work with
-        [F, Gamma] = F_Gamma_variant(X(k),Y(k));
+        [F, Omega] = F_Gamma_variant(X(k),Y(k));
         dx_hat_minus(:,k+1) = F*dx_hat_plus(:,k);
-        P_minus = F*P_plus*F' + Gamma*Q_KF*Gamma';
+        P_minus = F*P_plus*F' + Omega*Q_KF*Omega';
         
         H = [];
         dy_KF = [];
