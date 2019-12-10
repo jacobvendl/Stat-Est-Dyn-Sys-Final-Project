@@ -146,7 +146,7 @@ for s=1:Nsim
     for k=1:length(tvec)-1
         
         %KF steps now that we have noisy data to work with
-        [F, Omega] = F_Gamma_variant(X(k),Y(k));
+        [F, Omega] = F_Omega_variant(X(k),Y(k));
         dx_hat_minus(:,k+1) = F*dx_hat_plus(:,k);
         P_minus = F*P_plus*F' + Omega*Q_KF*Omega';
         
@@ -207,7 +207,7 @@ plot(r1x*ones(size(epsNEESbar)),'r--','LineWidth',2)
 plot(r2x*ones(size(epsNEESbar)),'r--','LineWidth',2)
 ylabel('NEES Statistics, avg \epsilon_x')
 xlabel('time step k')
-title('NEES Estimation Results')
+title(sprintf('NEES Estimation Results, N=%.0f',Nsim))
 legend('NEES @ time k','r_1 bound','r_2 bound')
 ylim([0 10])
 
@@ -222,7 +222,7 @@ plot(r1y*ones(size(epsNISbar)),'b--','LineWidth',2)
 plot(r2y*ones(size(epsNISbar)),'b--','LineWidth',2)
 ylabel('NIS Statistics, avg \epsilon_y')
 xlabel('time step k')
-title('NIS Estimation Results')
+title(sprintf('NIS Estimation Results, N=%.0f',Nsim))
 legend('NIS @ time k','r_1 bound','r_2 bound')
 ylim([0 10])
 
@@ -344,7 +344,7 @@ H(3,4) = 0;
 end
 
 
-function [F Omega] = F_Gamma_variant(X,Y)
+function [F Omega] = F_Omega_variant(X,Y)
 mu = 398600;        % km^3/s^2
 r0_nom = 6678;          % km
 dt = 10;

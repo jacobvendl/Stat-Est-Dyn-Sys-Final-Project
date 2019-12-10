@@ -18,10 +18,10 @@ dx0 = [0, 0.01, 0, 0.02]';
 Gamma = [0 0; 1 0; 0 0 ; 0 1];
 
 %set process noise
-Q_KF=eye(2)*1e-11;
+Q_KF=eye(2)*1e-9; %Q_KF(1,2)=1e-12; Q_KF(2,1)=1e-12;
 %set measurement noise covariance
 R=zeros(3); R(1,1)=0.01;R(2,2)=1;R(3,3)=0.01;
-R=eye(3)*1e-4;
+R=eye(3)*1e-3;
 Svq = chol(Q_KF,'lower');
 Svr = chol(R,'lower');
 
@@ -102,24 +102,14 @@ for s=1:Nsim
         H = [];
         R_KF = R;
         for i=1:12
-            theta = (i-1)*pi/6;
-            currentTime = tvec(k+1);
-            Xs = rE*cos(wE*currentTime + theta);
-            Ys = rE*sin(wE*currentTime + theta);
-            XDs = -rE*wE*sin(wE*currentTime + theta);
-            YDs = rE*wE*cos(wE*currentTime + theta);
-            phi = atan2((Y-Ys),(X-Xs));
-            thetaCheck = atan2(Ys,Xs);
-            if (thetaCheck-pi/2) > (thetaCheck+pi/2)
-                upperBound = thetaCheck-pi/2;
-                lowerBound = thetaCheck+pi/2;
-            else
-                upperBound = thetaCheck+pi/2;
-                lowerBound = thetaCheck-pi/2;
-            end
-            if (lowerBound <= phi && phi <= upperBound) ...
-                    || (lowerBound-2*pi <= phi && phi<=upperBound-2*pi)... %accomodate phi wrapping
-                    || (lowerBound+2*pi <= phi && phi<=upperBound+2*pi)
+            if ~isnan(y_noisy(3*i,k+1))
+                theta = (i-1)*pi/6;
+                currentTime = tvec(k+1);
+                Xs = rE*cos(wE*currentTime + theta);
+                Ys = rE*sin(wE*currentTime + theta);
+                XDs = -rE*wE*sin(wE*currentTime + theta);
+                YDs = rE*wE*cos(wE*currentTime + theta);
+                phi = atan2((Y-Ys),(X-Xs));
                 
                 rho= sqrt((X-Xs)^2 + (Y-Ys)^2);
                 rhoDot = ((X-Xs)*(XD-XDs) + (Y-Ys)*(YD-YDs)) / rho;
@@ -128,27 +118,30 @@ for s=1:Nsim
                 if length(y_hat_minus) >= 4
                     R_KF = blkdiag(R,R);
                 end
-            else
-                rho = nan;
-                rhoDot = nan;
-                phi=nan;
-            end
-            
+            end  
         end
-        %pull noisy measurement out of y_noisy matrix
-        y_actual = y_noisy(~isnan(y_noisy(:,k+1)),k+1);
-        innov = y_actual-y_hat_minus;
+        if isempty(H)==1
+            K = zeros(4,3);
+            H = zeros(3,4);
+            innov = zeros(3,1);
+        else
+            %pull noisy measurement out of y_noisy matrix
+            y_actual = y_noisy(~isnan(y_noisy(:,k+1)),k+1);
+            innov = y_actual - y_hat_minus;
+            K = P_minus*H'*inv(H*P_minus*H'+R_KF);
+        end
+        
         Sk = H*P_minus*H' + R_KF;
-        K = P_minus*H'*inv(H*P_minus*H' + R_KF);
         x_hat_plus(:,k+1) = x_hat_minus(:,k+1) + K*innov;
         P_plus= (eye(4) - K*H)*P_minus;
         
         %compute NEES and NIS statistics
         NEESsshist(k) = (x_noisy(:,k)-x_hat_plus(:,k))'*inv(P_plus)*(x_noisy(:,k)-x_hat_plus(:,k));
         NISsshist(k) = innov'*inv(Sk)*innov / (length(innov)/3);
+        
     end
     NEESamps(s,:) = NEESsshist;
-    NISamps(s,:) = NISsshist; 
+    NISamps(s,:) = NISsshist;
     fprintf('s=%.0f \n',s)
 end
 
@@ -164,7 +157,7 @@ plot(r1x*ones(size(epsNEESbar)),'r--','LineWidth',2)
 plot(r2x*ones(size(epsNEESbar)),'r--','LineWidth',2)
 ylabel('NEES Statistics, avg \epsilon_x')
 xlabel('time step k')
-title('NEES Estimation Results')
+title(sprintf('NEES Estimation Results, N=%.0f',Nsim))
 legend('NEES @ time k','r_1 bound','r_2 bound')
 ylim([0 10])
 
@@ -179,7 +172,7 @@ plot(r1y*ones(size(epsNISbar)),'b--','LineWidth',2)
 plot(r2y*ones(size(epsNISbar)),'b--','LineWidth',2)
 ylabel('NIS Statistics, avg \epsilon_y')
 xlabel('time step k')
-title('NIS Estimation Results')
+title(sprintf('NIS Estimation Results, N=%.0f',Nsim))
 legend('NIS @ time k','r_1 bound','r_2 bound')
 ylim([0 10])
 
