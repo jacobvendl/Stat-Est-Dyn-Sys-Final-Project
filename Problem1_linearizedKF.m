@@ -20,7 +20,7 @@ P = 2*pi*sqrt(r0^3/mu);  % s
 
 %STEP ONE  - generate input to truth model
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
-dx0 = [0, 0.075, 0, -0.021]';
+dx0 = [0, 0.01, 0, -0.01]';
 
 %STEP TWO - simulate perturbed ground truth state using ode45
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
@@ -79,7 +79,7 @@ end
 
 %TMT
 %set process noise
-Q_KF=eye(2)*1e-16;
+Q_KF=eye(2)*1e-15;
 %set measurement noise covariance
 R=zeros(3); R(1,1)=0.01;R(2,2)=1;R(3,3)=0.01;
 Svq = chol(Q_KF,'lower');
@@ -96,7 +96,7 @@ for s=1:Nsim
     rhoDot_noisy = zeros(12,length(T));
     phi_noisy = zeros(12,length(T));
     y_noisy = zeros(36,length(T));
-    P_p_0 = 1e3*eye(4);
+    P_p_0 = 1e6*eye(4);
     for k=1:length(tvec)
         %calculate process noise and measurement noise for the time step
         qk = randn(2,1);
@@ -171,7 +171,8 @@ for s=1:Nsim
             Sk = H*P_minus*H' + R_KF;
             K = P_minus*H'*inv(H*P_minus*H' + R_KF);
         end
-        P_plus = (eye(4) - K*H)*P_minus;
+        %Joseph formulation
+        P_plus =(eye(4)-K*H)*P_minus*(eye(4)-K*H)' + K*R_KF*K';
         
         %update state prediction
         dx_hat_plus(:,k+1) = dx_hat_minus(:,k+1) + K*(dy_KF - H*dx_hat_minus(:,k+1));
@@ -189,6 +190,7 @@ for s=1:Nsim
     end
     NEESamps(s,:) = NEESsshist;
     NISamps(s,:) = NISsshist;
+    fprintf('s=%.0f \n',s)
 end
 twoSigX(1401) = 2*sqrt(P_plus(1,1));
 twoSigXdot(1401) = 2*sqrt(P_plus(2,2));

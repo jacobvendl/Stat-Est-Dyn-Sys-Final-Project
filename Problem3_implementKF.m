@@ -14,7 +14,7 @@ dt = 10;                 % s
 P = 2*pi*sqrt(r0^3/mu);  % s
 
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
-dx0 = [0, 0.075, 0, -0.021]';
+dx0 = [0, 0.01, 0, -0.01]';
 
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
 

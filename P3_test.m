@@ -17,7 +17,7 @@ dt = 10;                 % s
 P = 2*pi*sqrt(r0^3/mu);  % s
 
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
-dx0 = [0, -0.02, 0, 0.07]';
+dx0 = [0, 0.01, 0, 0.01]';
 
 %generate truth reference trajectory, unperturbed
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
@@ -102,7 +102,7 @@ end
 
 Q_KF = Qtrue;
 R = Rtrue;
-Q_KF = eye(2)*1e-12;
+Q_KF = eye(2)*1e-10;
 
 % Implement Linearized Kalman Filter
 LKF = zeros(4,length(tvec));
