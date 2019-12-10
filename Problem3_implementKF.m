@@ -26,22 +26,22 @@ R = Rtrue;
 N = size(tvec,2);
 T = max(tvec);
 
-sensor = NaN(4,N,12);
+ysensor = NaN(4,N,12);
 for i = 2:N
     data = ydata{:,i};
     n = size(data,2);
     if n == 1
         station1 = data(4,1);
-        sensor(:,i,station1) = data(:,1);
+        ysensor(:,i,station1) = data(:,1);
     elseif n == 2
         station1 = data(4,1);
         station2 = data(4,2);
-        sensor(:,i,station1) = data(:,1);
-        sensor(:,i,station2) = data(:,2);
+        ysensor(:,i,station1) = data(:,1);
+        ysensor(:,i,station2) = data(:,2);
     end    
 end
 
-plotsensor(tvec,sensor)
+plotsensor(tvec,ysensor)
 
 % Calculate sensor positions
 sensor_pos = zeros(4,N,12);
@@ -70,12 +70,12 @@ x_star=x_star';
 % plotsensor(tvec,y_star)
 
 % Initialized KF
-P_plus = 1e3*eye(4);
+P_plus = eye(4);
 dx_hat_plus = dx0;
 dx_hat_minus = zeros(4,N);
 x_hat = zeros(4,N);
 
-Q_KF=eye(2)*1e-9;
+Q_KF=eye(2)*1e-6;
 
 for k = 1:N-1
     [F, Gamma] = F_Gamma_variant(x_star(1,k),x_star(3,k));
@@ -86,9 +86,9 @@ for k = 1:N-1
     dy_KF = [];
     R_KF = R;
     for i = 1:12
-        if ~isnan(sensor(1,k,i))
-            y_star = measurement(x_star(:,k),sensor_pos(:,k+1,i));
-            dy_KF = vertcat(dy_KF, sensor(1:3,k,i)-y_star);
+        if ~isnan(ysensor(1,k,i))
+            y_star = measurement(x_star(:,k+1),sensor_pos(:,k+1,i));
+            dy_KF = vertcat(dy_KF, ysensor(1:3,k,i)-y_star);
             H = vertcat(H,H_variant(x_star(:,k+1),sensor_pos(:,k+1,i)));
             if length(dy_KF) >= 4
                 R_KF = blkdiag(R,R);
@@ -118,7 +118,7 @@ end
 
 title = 'Linearized Kalman Filter State Trajectory';
 filename = 'ASEN5044_FP_P3_LKF.png';
-plottrajectory(tvec,LKF,title,filename);
+plottrajectory(tvec,x_star,LKF,title,filename);
 
 
 %% Implement Extended Kalman Filter
@@ -128,7 +128,7 @@ plottrajectory(tvec,LKF,title,filename);
 
 EKF = zeros(4,N);
 x_plus = x0;
-P_plus = eye(4)*1e-6;
+P_plus = eye(4)*1e-8;
 
 
 for k = 2:N-1 % k represents k+1
@@ -150,11 +150,11 @@ for k = 2:N-1 % k represents k+1
     e_KF = [];
     R_KF = [];
     for i = 1:12
-        if ~isnan(sensor(1,k,i))
+        if ~isnan(ysensor(1,k,i))
             ynom_minus = measurement(x_minus,sensor_pos(:,k,i));
             H = H_variant(x_minus,sensor_pos(:,k,i));
             
-            e = sensor(1:3,k,i) - ynom_minus;
+            e = ysensor(1:3,k,i) - ynom_minus;
             e_KF = vertcat(e_KF,e);
             
             if length(e_KF) >= 4
@@ -198,63 +198,6 @@ title = 'Unscented Kalman Filter State Trajectory';
 filename = 'ASEN5044_FP_P3_UKF.png';
 plottrajectory(tvec,UKF,title,filename);
 
-function [y_star] = measurement_set2(T,x_star)
-
-rE = 6378;               % km
-wE = 2*pi/86400;         % rad/s
-
-X=x_star(1,:); Y=x_star(3,:); XD=x_star(2,:); YD=x_star(4,:);
-Xs = zeros(12,length(T));
-Ys = zeros(12,length(T));
-XDs = zeros(12,length(T));
-YDs = zeros(12,length(T));
-rho = zeros(12,length(T));
-rhoDot = zeros(12,length(T));
-phi = zeros(12,length(T));
-num = zeros(12,length(T));
-y_star = zeros(3,length(T),12);
-%now simulate the measurements for all time
-for i=1:12 %stations
-    theta = (i-1)*pi/6;
-    for t=1:length(T) %loop through one orbit period
-        currentTime = T(t);
-        
-        %find station position and velocity
-        Xs(i,t) = rE*cos(wE*currentTime + theta);
-        Ys(i,t) = rE*sin(wE*currentTime + theta);
-        XDs(i,t) = -rE*wE*sin(wE*currentTime + theta);
-        YDs(i,t) = rE*wE*cos(wE*currentTime + theta);
-        
-        %peform check at given time to see if s/c is visible
-        phi(i,t) = atan2((Y(t)-Ys(i,t)),(X(t)-Xs(i,t)));
-        thetaCheck = atan2(Ys(i,t),Xs(i,t));
-        if (thetaCheck-pi/2) > (thetaCheck+pi/2)
-            upperBound = thetaCheck-pi/2;
-            lowerBound = thetaCheck+pi/2;
-        else
-            upperBound = thetaCheck+pi/2;
-            lowerBound = thetaCheck-pi/2;
-        end
-        if (lowerBound <= phi(i,t) && phi(i,t) <= upperBound) ...
-                || (lowerBound-2*pi <= phi(i,t) && phi(i,t)<=upperBound-2*pi)... %accomodate phi wrapping
-                || (lowerBound+2*pi <= phi(i,t) && phi(i,t)<=upperBound+2*pi)
-            
-            rho(i,t) = sqrt((X(t)-Xs(i,t))^2 + (Y(t)-Ys(i,t))^2);
-            rhoDot(i,t) = ((X(t)-Xs(i,t))*(XD(t)-XDs(i,t)) + (Y(t)-Ys(i,t))*(YD(t)-YDs(i,t)))...
-                / rho(i,t);
-        else
-            rho(i,t) = nan;
-            rhoDot(i,t) = nan;
-            phi(i,t)=nan;
-            num(i,t)=nan;
-        end
-        y_star(1,:,i) = rho(i,t);
-        y_star(2,:,i) = rhoDot(i,t);
-        y_star(3,:,i) = phi(i,t);
-        y_star(4,:,i) = num(i,t);
-    end
-end
-end
 
 
 function [y] = measurement(state,station)  
@@ -305,7 +248,7 @@ function plotsensor(tvec,sensor,n)
     saveas(fig,'ASEN5044_FP_P3_YDATA.png','png');
 end
 
-function plottrajectory(tvec,traj,title,filename)
+function plottrajectory(tvec,x_star,traj,title,filename)
 
     T = max(tvec);
 
@@ -314,24 +257,28 @@ function plottrajectory(tvec,traj,title,filename)
     sgtitle(title);
 
     subplot(2,2,1); hold on; grid on; grid minor;
+    plot(tvec,x_star(1,:),'k--','LineWidth',1);
     plot(tvec,traj(1,:),'b-','LineWidth',1.5);
     xlabel('time [sec]');
     ylabel('X [km]');
     xlim([0 T]);
 
     subplot(2,2,2); hold on; grid on; grid minor;
+    plot(tvec,x_star(3,:),'k--','LineWidth',1);
     plot(tvec,traj(3,:),'b-','LineWidth',1.5);
     xlabel('time [sec]');
     ylabel('Y position [km]');
     xlim([0 T]);
 
     subplot(2,2,3); hold on; grid on; grid minor;
+    plot(tvec,x_star(2,:),'k--','LineWidth',1);
     plot(tvec,traj(2,:),'b-','LineWidth',1.5);
     xlabel('time [sec]');
     ylabel('Xdot [km/s]');
     xlim([0 T]);
 
     subplot(2,2,4); hold on; grid on; grid minor;
+    plot(tvec,x_star(4,:),'k--','LineWidth',1);
     plot(tvec,traj(4,:),'b-','LineWidth',1.5);
     xlabel('time [sec]');
     ylabel('Ydot [km/s]');
@@ -359,13 +306,13 @@ end
 
 function [ H ] = H_variant(state, station)
 X = state(1);
-Y = state(2);
-Xdot = state(3);
+Y = state(3);
+Xdot = state(2);
 Ydot = state(4);
 
 Xs = station(1);
-Ys = station(2);
-Xsdot = station(3);
+Ys = station(3);
+Xsdot = station(2);
 Ysdot = station(4);
 
 %initialize H
