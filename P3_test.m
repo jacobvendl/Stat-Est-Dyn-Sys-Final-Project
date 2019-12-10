@@ -105,7 +105,6 @@ R = Rtrue;
 Q_KF = eye(2)*1e-10;
 
 % Implement Linearized Kalman Filter
-LKF = zeros(4,length(tvec));
 
 P_plus = eye(4)*1e4;
 dx_hat_plus = dx0;
@@ -196,7 +195,120 @@ plot(tvec,x_hat(4,:)-x_star(4,:),'b-','LineWidth',2)
 ylabel('Ydot [km/s]')
 
 
+%%
+clear x_hat P_plus twoSigX twoSigXdot twoSigY twoSigYdot 
 
+% Implement Extended Kalman Filter
+
+Q_KF = Qtrue;
+R = Rtrue;
+Q_KF = eye(2)*1e-12;
+
+x_hat(:,1) = x0+dx0;
+P_plus = eye(4)*1e4;
+for k=1:length(tvec)-1
+    %call ode45 to propagate from k to k+1
+    ts = tvec(k);
+    tf = tvec(k+1);
+    [~,temp] = ode45(@(t,s)orbit_prop_func(t,s),[ts tf],x_hat(:,k),opts);
+    x_hat_minus(:,k+1) = temp(end,:);
+    [F,Omega] = F_Omega_variant(x_hat(1,k),x_hat(3,k));
+    P_minus = F*P_plus*F' + Omega*Q_KF*Omega';
+    
+    %now find measurement y_hat_minus at k+1 using x_hat_minus at k+1
+    X=x_hat_minus(1,k+1);
+    Y=x_hat_minus(3,k+1);
+    XD=x_hat_minus(2,k+1);
+    YD=x_hat_minus(4,k+1);
+    y_hat_minus = [];
+    H = [];
+    R_KF = R;
+    for i=1:12
+        if ~isnan(y_noisy(3*i,k+1))
+            theta = (i-1)*pi/6;
+            currentTime = tvec(k+1);
+            Xs = rE*cos(wE*currentTime + theta);
+            Ys = rE*sin(wE*currentTime + theta);
+            XDs = -rE*wE*sin(wE*currentTime + theta);
+            YDs = rE*wE*cos(wE*currentTime + theta);
+            phi = atan2((Y-Ys),(X-Xs));
+            
+            rho= sqrt((X-Xs)^2 + (Y-Ys)^2);
+            rhoDot = ((X-Xs)*(XD-XDs) + (Y-Ys)*(YD-YDs)) / rho;
+            y_hat_minus = vertcat(y_hat_minus,[rho;rhoDot;phi]);
+            H = vertcat(H,H_variant(X,XD,Y,YD,Xs,XDs,Ys,YDs));
+            if length(y_hat_minus) >= 4
+                R_KF = blkdiag(R,R);
+            end
+        end
+    end
+    if isempty(H)==1
+        K = zeros(4,3);
+        H = zeros(3,4);
+        innov = zeros(3,1);
+    else
+        %pull noisy measurement out of y_noisy matrix
+        y_actual = y_noisy(~isnan(y_noisy(:,k+1)),k+1);
+        innov = y_actual - y_hat_minus;
+        K = P_minus*H'*inv(H*P_minus*H'+R_KF);
+    end
+    Sk = H*P_minus*H' + R_KF;
+    x_hat(:,k+1) = x_hat_minus(:,k+1) + K*innov;
+    %Joseph formulation
+    P_plus =(eye(4)-K*H)*P_minus*(eye(4)-K*H)' + K*R_KF*K'; 
+    
+    %save off covariance info
+    twoSigX(k) = 2*sqrt(P_plus(1,1));
+    twoSigXdot(k) = 2*sqrt(P_plus(2,2));
+    twoSigY(k) = 2*sqrt(P_plus(3,3));
+    twoSigYdot(k) = 2*sqrt(P_plus(4,4));
+end
+x_hat(:,1401) = x_star(:,1401) + dx_hat_plus(:,1401);
+twoSigX(1401) = 2*sqrt(P_plus(1,1));
+twoSigXdot(1401) = 2*sqrt(P_plus(2,2));
+twoSigY(1401) = 2*sqrt(P_plus(3,3));
+twoSigYdot(1401) = 2*sqrt(P_plus(4,4));
+
+figure; hold on; grid on; grid minor;
+sgtitle('EKF Estimated States for provided data')
+subplot(4,1,1); hold on; grid on; grid minor
+plot(tvec,x_hat(1,:),'b-','LineWidth',2)
+plot(tvec,x_hat(1,:) + twoSigX,'k--','LineWidth',1)
+plot(tvec,x_hat(1,:) - twoSigX,'k--','LineWidth',1)
+ylabel('X [km]')
+legend('State','+/- 2\sigma')
+subplot(4,1,2); hold on; grid on; grid minor
+plot(tvec,x_hat(2,:),'b-','LineWidth',2)
+plot(tvec,x_hat(2,:) + twoSigXdot,'k--','LineWidth',1)
+plot(tvec,x_hat(2,:) - twoSigXdot,'k--','LineWidth',1)
+ylabel('XDot [km/s]')
+subplot(4,1,3); hold on; grid on; grid minor
+plot(tvec,x_hat(3,:),'b-','LineWidth',2)
+plot(tvec,x_hat(3,:) + twoSigY,'k--','LineWidth',1)
+plot(tvec,x_hat(3,:) - twoSigY,'k--','LineWidth',1)
+ylabel('Y [km]')
+subplot(4,1,4); hold on; grid on; grid minor
+plot(tvec,x_hat(4,:),'b-','LineWidth',2)
+plot(tvec,x_hat(4,:) + twoSigYdot,'k--','LineWidth',1)
+plot(tvec,x_hat(4,:) - twoSigYdot,'k--','LineWidth',1)
+xlabel('time [s]')
+ylabel('YDot [km/s]')
+
+figure; hold on;
+sgtitle('EKF - State Estimation Errors')
+subplot(4,1,1); hold on; grid on; grid minor;
+plot(tvec,x_hat(1,:)-x_star(1,:),'b-','LineWidth',2)
+legend('x_{hat} - x*')
+ylabel('X [km]')
+subplot(4,1,2); hold on; grid on; grid minor;
+plot(tvec,x_hat(2,:)-x_star(2,:),'b-','LineWidth',2)
+ylabel('Xdot [km/s]')
+subplot(4,1,3); hold on; grid on; grid minor;
+plot(tvec,x_hat(3,:)-x_star(3,:),'b-','LineWidth',2)
+ylabel('Y [km]')
+subplot(4,1,4); hold on; grid on; grid minor;
+plot(tvec,x_hat(4,:)-x_star(4,:),'b-','LineWidth',2)
+ylabel('Ydot [km/s]')
 
 %propagation function
 function [ ds ] = orbit_prop_func(t,s)

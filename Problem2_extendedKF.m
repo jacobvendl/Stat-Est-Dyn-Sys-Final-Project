@@ -14,11 +14,11 @@ P = 2*pi*sqrt(r0^3/mu);  % s
 load('orbitdeterm_finalproj_KFdata.mat')
 
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
-dx0 = [0, 0.01, 0, 0.02]';
+dx0 = [0, 0.01, 0, 0.01]';
 Gamma = [0 0; 1 0; 0 0 ; 0 1];
 
 %set process noise
-Q_KF=eye(2)*1e-9; %Q_KF(1,2)=1e-12; Q_KF(2,1)=1e-12;
+Q_KF=eye(2)*1e-7; %Q_KF(1,2)=1e-12; Q_KF(2,1)=1e-12;
 %set measurement noise covariance
 R=zeros(3); R(1,1)=0.01;R(2,2)=1;R(3,3)=0.01;
 R=eye(3)*1e-3;
@@ -83,14 +83,14 @@ for s=1:Nsim
     
     %Extended KF
     x_hat_plus(:,1) = x0+dx0;
-    P_plus = eye(4)*1e6;
+    P_plus = eye(4)*1e9;
     for k=1:length(tvec)-1
         %call ode45 to propagate from k to k+1
         ts = tvec(k);
         tf = tvec(k+1);
         [~,temp] = ode45(@(t,s)orbit_prop_func(t,s),[ts tf],x_hat_plus(:,k),opts);
         x_hat_minus(:,k+1) = temp(end,:);
-        [F,Omega] = F_Gamma_variant(x_hat_plus(1,k),x_hat_plus(3,k));
+        [F,Omega] = F_Omega_variant(x_hat_plus(1,k),x_hat_plus(3,k));
         P_minus = F*P_plus*F' + Omega*Q_KF*Omega';
         
         %now find measurement y_hat_minus at k+1 using x_hat_minus at k+1
@@ -133,7 +133,8 @@ for s=1:Nsim
         
         Sk = H*P_minus*H' + R_KF;
         x_hat_plus(:,k+1) = x_hat_minus(:,k+1) + K*innov;
-        P_plus= (eye(4) - K*H)*P_minus;
+        %Joseph formulation
+        P_plus =(eye(4)-K*H)*P_minus*(eye(4)-K*H)' + K*R_KF*K';
         
         %compute NEES and NIS statistics
         NEESsshist(k) = (x_noisy(:,k)-x_hat_plus(:,k))'*inv(P_plus)*(x_noisy(:,k)-x_hat_plus(:,k));
@@ -177,7 +178,7 @@ legend('NIS @ time k','r_1 bound','r_2 bound')
 ylim([0 10])
 
 figure; hold on;
-sgtitle('EKF Predicted States')
+sgtitle('LKF Predicted States')
 subplot(4,1,1); hold on; grid on; grid minor;
 plot(tvec,x_hat_plus(1,:),'b-','LineWidth',2)
 ylabel('X [km]')
@@ -198,7 +199,7 @@ opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
 x_perturbed=x_perturbed';
 
 figure; hold on;
-sgtitle('Linearized KF State Estimation Errors')
+sgtitle('EKF State Estimation Errors')
 subplot(4,1,1); hold on; grid on; grid minor;
 plot(tvec,x_hat_plus(1,:)-x_perturbed(1,:),'b-','LineWidth',2)
 ylabel('X [km]')
@@ -238,7 +239,7 @@ yddot = -mu/r^3 * y;
 ds = [xdot, xddot, ydot, yddot]';
 end
 
-function [F Omega] = F_Gamma_variant(X,Y)
+function [F Omega] = F_Omega_variant(X,Y)
 mu = 398600;        % km^3/s^2
 r0_nom = 6678;          % km
 dt = 10;
