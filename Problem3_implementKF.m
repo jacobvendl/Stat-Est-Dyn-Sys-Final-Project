@@ -24,7 +24,6 @@ Q = Qtrue;
 R = Rtrue;
 
 N = size(tvec,2);
-T = max(tvec);
 
 y_sensor = NaN(4,N,12);
 for i = 2:N
@@ -71,7 +70,7 @@ dx_hat_plus = [0,0,0,0]';
 dx_hat_minus = zeros(4,N);
 x_hat = zeros(4,N);
 
-Q_KF=eye(2)*1e-9;
+Q_KF = eye(2)*1e-9;
 
 for k = 1:N-1
     [F, Gamma] = F_Gamma_variant(x_star(1,k),x_star(3,k));
@@ -125,7 +124,6 @@ Q_KF=eye(2)*1e-11;
 EKF = zeros(4,N);
 x_hat_plus = x0;
 P_plus = eye(4)*1e-3;
-
 
 for k = 1:N-1 % k represents k+1
     
@@ -195,6 +193,8 @@ plottrajectory(tvec,x_star,UKF,title,filename);
 
 
 
+%% Supporting Functions
+
 function [y] = measurement(state,station)  
 y = zeros(3,1);
 
@@ -206,7 +206,6 @@ y(2) = ((state(1)-station(1))*(state(2)-station(2))...
 % phi
 y(3) = atan2((state(3)-station(3)),(state(1)-station(1)));
 end
-
 
 function plotsensor(tvec,sensor,n)
 
@@ -331,7 +330,6 @@ H(3,2) = 0;
 H(3,3) = ((X-Xs)/((X-Xs)^2+(Y-Ys)^2));
 H(3,4) = 0;
 end
-
 
 function [F Gamma] = F_Gamma_variant(X,Y)
 mu = 398600;        % km^3/s^2
