@@ -41,7 +41,7 @@ for i = 2:N
     end    
 end
 
-plotsensor(tvec,ysensor)
+%plotsensor(tvec,ysensor)
 
 % Calculate sensor positions
 sensor_pos = zeros(4,N,12);
@@ -64,18 +64,14 @@ LKF = zeros(4,N);
 [T, x_star] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
 x_star=x_star';
 
-% % Nominal Measurements
-% [y_star] = measurement_set2(tvec,x_star);
-% 
-% plotsensor(tvec,y_star)
 
 % Initialized KF
-P_plus = eye(4);
-dx_hat_plus = dx0;
+P_plus = eye(4)*1e3;
+dx_hat_plus = [0,0,0,0]';
 dx_hat_minus = zeros(4,N);
 x_hat = zeros(4,N);
 
-Q_KF=eye(2)*1e-6;
+Q_KF=eye(2)*1e-9;
 
 for k = 1:N-1
     [F, Gamma] = F_Gamma_variant(x_star(1,k),x_star(3,k));
@@ -128,7 +124,7 @@ plottrajectory(tvec,x_star,LKF,title,filename);
 
 EKF = zeros(4,N);
 x_plus = x0;
-P_plus = eye(4)*1e-8;
+P_plus = eye(4)*1e-3;
 
 
 for k = 2:N-1 % k represents k+1
