@@ -24,13 +24,6 @@ wE = 2*pi/86400;         % rad/s
 dt = 10;                 % s
 P = 2*pi*sqrt(r0^3/mu);  % s
 
-%CODE OUTLINE: jack please check and maybe make your own? this is critical
-%monte carlo to pick a dx
-%simulate ground truth state using given Q
-%simulate measurements using R
-%run KF on the dx, saving out state estimation errors
-%NEES and NIS tests
-
 %STEP ONE  - generate input to truth model
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
 dx0 = [0, 0.075, 0, -0.021]'; %come back and get this with MC
@@ -129,27 +122,31 @@ x_sim_test = x_star + dx_lin;
 
 
 %states versus time for nonlinear dynamics
-figure; hold on;
-sgtitle('States vs. Time, Full Nonlinear Dynamics Simulation')
+fig = figure; hold on;
+set(fig,'Position',[100 100 900 600]);
+sgtitle('Nonlinear Dynamics Simulation, Full State')
 subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x_star(1,:),'-')
+plot(tvec,x_star(1,:),'b-','LineWidth',1.25)
 ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor; 
-plot(tvec,x_star(2,:),'-')
+plot(tvec,x_star(2,:),'b-','LineWidth',1.25)
 ylabel('Xdot [km/s]')
 subplot(4,1,3); hold on; grid on; grid minor; 
-plot(tvec,x_star(3,:),'-')
+plot(tvec,x_star(3,:),'b-','LineWidth',1.25)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor; 
-plot(tvec,x_star(4,:),'-')
+plot(tvec,x_star(4,:),'b-','LineWidth',1.25)
 ylabel('Ydot [km/s]')
+xlabel('Time [seconds]');
+saveas(fig,'Problem0_Nonlinear_Full.png','png');
 
 %full nonlinear measurement data simulation
-figure; hold on; 
-sgtitle('Full Nonlinear Measurement Data Simulation')
+fig = figure; hold on; 
+set(fig,'Position',[100 100 900 600]);
+sgtitle('Nonlinear Dynamics Simulation, Measurement Data')
 subplot(3,1,1); hold on; grid on; grid minor; ylabel('rho^i [km]')
 subplot(3,1,2); hold on; grid on; grid minor; ylabel('rhodot^i [km/s]')
-subplot(3,1,3); hold on; grid on; grid minor; ylabel('\phi^i [rad]')
+subplot(3,1,3); hold on; grid on; grid minor; ylabel('phi^i [rad]')
 for i=1:12
     subplot(3,1,1); 
     plot(tvec,rho(i,:),'x')
@@ -158,45 +155,54 @@ for i=1:12
     subplot(3,1,3);
     plot(tvec,phi(i,:),'o')
 end
+xlabel('Time [seconds]');
+saveas(fig,'Problem0_Nonlinear_Measurement.png','png');
 
 %total states vs time for linearized dynamics model
-figure; hold on;
-sgtitle(sprintf('States vs. Time, Linearized Approximate Dynamics Simulation \n dx =[%.4fkm %.4fkm/s %.4fkm %.4fkm/s]',dx0(1),dx0(2),dx0(3),dx0(4)))
+fig = figure; hold on;
+set(fig,'Position',[100 100 900 600]);
+sgtitle('Linearized Dynamics Simulation, Full State')
 subplot(4,1,1); hold on; grid on; grid minor;
-title('x position [km]')
-plot(tvec,x_sim(1,:),'-')
-subplot(4,1,2); hold on; grid on; grid minor;
-title('x velocity [km/s]')
-plot(tvec,x_sim(2,:),'-')
-subplot(4,1,3); hold on; grid on; grid minor;
-title('y position [km]')
-plot(tvec,x_sim(3,:),'-')
-subplot(4,1,4); hold on; grid on; grid minor;
-title('y velocity [km/s]')
-plot(tvec,x_sim(4,:),'-')
-
-%linearized approximate solution
-figure; hold on; 
-sgtitle('States vs. Time, Linearized Approximate Dynamics Simulation')
-subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,dx_lin(1,:),'-')
+plot(tvec,x_sim(1,:),'b-','LineWidth',1.25)
 ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,dx_lin(2,:),'-')
+plot(tvec,x_sim(2,:),'b-','LineWidth',1.25)
 ylabel('Xdot [km/s]')
 subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,dx_lin(3,:),'-')
+plot(tvec,x_sim(3,:),'b-','LineWidth',1.25)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,dx_lin(4,:),'-')
+plot(tvec,x_sim(4,:),'b-','LineWidth',1.25)
 ylabel('Ydot [km/s]')
+xlabel('Time [seconds]');
+saveas(fig,'Problem0_Linearized_Full.png','png');
+
+%linearized approximate solution
+fig = figure; hold on; 
+set(fig,'Position',[100 100 900 600]);
+sgtitle('Linearized Dynamics Simulation, Deviation from Nominal')
+subplot(4,1,1); hold on; grid on; grid minor;
+plot(tvec,dx_lin(1,:),'b-','LineWidth',1.25)
+ylabel('\deltaX [km]')
+subplot(4,1,2); hold on; grid on; grid minor;
+plot(tvec,dx_lin(2,:),'b-','LineWidth',1.25)
+ylabel('\deltaXdot [km/s]')
+subplot(4,1,3); hold on; grid on; grid minor;
+plot(tvec,dx_lin(3,:),'b-','LineWidth',1.25)
+ylabel('\deltaY [km]')
+subplot(4,1,4); hold on; grid on; grid minor;
+plot(tvec,dx_lin(4,:),'b-','LineWidth',1.25)
+ylabel('\deltaYdot [km/s]')
+xlabel('Time [seconds]');
+saveas(fig,'Problem0_Linearized_Deviation.png','png');
 
 %linearized approximate measurement simulation
-figure; hold on;
-sgtitle('Approximate Linearized Measurement Data Simulation')
+fig = figure; hold on;
+set(fig,'Position',[100 100 900 600]);
+sgtitle('Linearized Dynamics Simulation, Measurement Data')
 subplot(3,1,1); hold on; grid on; grid minor; ylabel('rho^i [km]')
 subplot(3,1,2); hold on; grid on; grid minor; ylabel('rhodot^i [km/s]')
-subplot(3,1,3); hold on; grid on; grid minor; ylabel('\phi^i [rad]')
+subplot(3,1,3); hold on; grid on; grid minor; ylabel('phi^i [rad]')
 for i=1:12
     subplot(3,1,1); 
     plot(tvec,y_sim(3*i-2,:),'x')
@@ -205,6 +211,8 @@ for i=1:12
     subplot(3,1,3);
     plot(tvec,y_sim(3*i,:),'o')
 end
+xlabel('Time [seconds]');
+saveas(fig,'Problem0_Linearized_Measurement.png','png');
 
 %propagation function
 function [ ds ] = orbit_prop_func(t,s)
