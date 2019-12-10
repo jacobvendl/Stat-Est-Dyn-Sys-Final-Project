@@ -13,6 +13,9 @@ wE = 2*pi/86400;         % rad/s
 dt = 10;                 % s
 P = 2*pi*sqrt(r0^3/mu);  % s
 
+x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
+dx0 = [0, 0.075, 0, -0.021]';
+
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
 
 load('orbitdeterm_finalproj_KFdata.mat')
@@ -40,8 +43,6 @@ end
 
 plotsensor(tvec,sensor)
 
-x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
-
 % Calculate sensor positions
 sensor_pos = zeros(4,N,12);
 for i = 1:12
@@ -58,15 +59,61 @@ end
 %% Implement Linearized Kalman Filter
 
 LKF = zeros(4,N);
-dx_hat_plus_mat = zeros(4,N);
-dx0 = [0, 0.075, 0, -0.021]';
+
+% Nominal Orbit
+[T, x_star] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
+x_star=x_star';
+
+% % Nominal Measurements
+% [y_star] = measurement_set2(tvec,x_star);
+% 
+% plotsensor(tvec,y_star)
+
+% Initialized KF
+P_plus = 1e3*eye(4);
 dx_hat_plus = dx0;
-P_plus = eye(4)*1e-6;
-for k = 1:N
-    dx_hat_plus_mat = horzcat(dx_hat_plus_mat, dx_hat_plus(:,k));
+dx_hat_minus = zeros(4,N);
+x_hat = zeros(4,N);
+
+Q_KF=eye(2)*1e-9;
+
+for k = 1:N-1
+    [F, Gamma] = F_Gamma_variant(x_star(1,k),x_star(3,k));
+    dx_hat_minus(:,k+1) = F*dx_hat_plus(:,k);
+    P_minus = F*P_plus*F' + Gamma*Q_KF*Gamma';
     
+    H = [];
+    dy_KF = [];
+    R_KF = R;
+    for i = 1:12
+        if ~isnan(sensor(1,k,i))
+            y_star = measurement(x_star(:,k),sensor_pos(:,k+1,i));
+            dy_KF = vertcat(dy_KF, sensor(1:3,k,i)-y_star);
+            H = vertcat(H,H_variant(x_star(:,k+1),sensor_pos(:,k+1,i)));
+            if length(dy_KF) >= 4
+                R_KF = blkdiag(R,R);
+            end
+        end
+    end
+    if isempty(H) == 1
+        K = zeros(4,3);
+        H = zeros(3,4);
+        dy_KF = zeros(3,1);
+    else
+        Sk = H*P_minus*H' + R_KF;
+        K = P_minus*H'*inv(H*P_minus*H' + R_KF);
+    end
+    P_plus = (eye(4) - K*H)*P_minus;
     
-    
+    dx_hat_plus(:,k+1) = dx_hat_minus(:,k+1) + K*(dy_KF - H*dx_hat_minus(:,k+1));
+    x_hat(:,k) = x_star(:,k) + dx_hat_plus(:,k);
+    LKF(:,k) = x_hat(:,k);
+   
+    %save off covariance info
+    twoSigX(k) = 2*sqrt(P_plus(1,1));
+    twoSigXdot(k) = 2*sqrt(P_plus(2,2));
+    twoSigY(k) = 2*sqrt(P_plus(3,3));
+    twoSigYdot(k) = 2*sqrt(P_plus(4,4));
 end
 
 title = 'Linearized Kalman Filter State Trajectory';
@@ -151,6 +198,65 @@ title = 'Unscented Kalman Filter State Trajectory';
 filename = 'ASEN5044_FP_P3_UKF.png';
 plottrajectory(tvec,UKF,title,filename);
 
+function [y_star] = measurement_set2(T,x_star)
+
+rE = 6378;               % km
+wE = 2*pi/86400;         % rad/s
+
+X=x_star(1,:); Y=x_star(3,:); XD=x_star(2,:); YD=x_star(4,:);
+Xs = zeros(12,length(T));
+Ys = zeros(12,length(T));
+XDs = zeros(12,length(T));
+YDs = zeros(12,length(T));
+rho = zeros(12,length(T));
+rhoDot = zeros(12,length(T));
+phi = zeros(12,length(T));
+num = zeros(12,length(T));
+y_star = zeros(3,length(T),12);
+%now simulate the measurements for all time
+for i=1:12 %stations
+    theta = (i-1)*pi/6;
+    for t=1:length(T) %loop through one orbit period
+        currentTime = T(t);
+        
+        %find station position and velocity
+        Xs(i,t) = rE*cos(wE*currentTime + theta);
+        Ys(i,t) = rE*sin(wE*currentTime + theta);
+        XDs(i,t) = -rE*wE*sin(wE*currentTime + theta);
+        YDs(i,t) = rE*wE*cos(wE*currentTime + theta);
+        
+        %peform check at given time to see if s/c is visible
+        phi(i,t) = atan2((Y(t)-Ys(i,t)),(X(t)-Xs(i,t)));
+        thetaCheck = atan2(Ys(i,t),Xs(i,t));
+        if (thetaCheck-pi/2) > (thetaCheck+pi/2)
+            upperBound = thetaCheck-pi/2;
+            lowerBound = thetaCheck+pi/2;
+        else
+            upperBound = thetaCheck+pi/2;
+            lowerBound = thetaCheck-pi/2;
+        end
+        if (lowerBound <= phi(i,t) && phi(i,t) <= upperBound) ...
+                || (lowerBound-2*pi <= phi(i,t) && phi(i,t)<=upperBound-2*pi)... %accomodate phi wrapping
+                || (lowerBound+2*pi <= phi(i,t) && phi(i,t)<=upperBound+2*pi)
+            
+            rho(i,t) = sqrt((X(t)-Xs(i,t))^2 + (Y(t)-Ys(i,t))^2);
+            rhoDot(i,t) = ((X(t)-Xs(i,t))*(XD(t)-XDs(i,t)) + (Y(t)-Ys(i,t))*(YD(t)-YDs(i,t)))...
+                / rho(i,t);
+        else
+            rho(i,t) = nan;
+            rhoDot(i,t) = nan;
+            phi(i,t)=nan;
+            num(i,t)=nan;
+        end
+        y_star(1,:,i) = rho(i,t);
+        y_star(2,:,i) = rhoDot(i,t);
+        y_star(3,:,i) = phi(i,t);
+        y_star(4,:,i) = num(i,t);
+    end
+end
+end
+
+
 function [y] = measurement(state,station)  
 y = zeros(3,1);
 
@@ -162,6 +268,7 @@ y(2) = ((state(1)-station(1))*(state(2)-station(2))...
 % phi
 y(3) = atan2((state(3)-station(3)),(state(1)-station(1)));
 end
+
 
 function plotsensor(tvec,sensor,n)
 
@@ -284,7 +391,7 @@ H(3,4) = 0;
 end
 
 
-function [F Omega] = F_Gamma_variant(X,Y)
+function [F Gamma] = F_Gamma_variant(X,Y)
 mu = 398600;        % km^3/s^2
 r0_nom = 6678;          % km
 dt = 10;
@@ -296,5 +403,6 @@ A = [0, 1, 0, 0;
 F=eye(4) + dt*A;
 
 Gamma = [0 0; 1 0; 0 0; 0 1];
-Omega = dt*Gamma;
+Gamma = dt*Gamma;
 end
+
