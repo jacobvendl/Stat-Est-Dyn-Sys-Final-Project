@@ -26,18 +26,18 @@ R = Rtrue;
 N = size(tvec,2);
 T = max(tvec);
 
-ysensor = NaN(4,N,12);
+y_sensor = NaN(4,N,12);
 for i = 2:N
     data = ydata{:,i};
     n = size(data,2);
     if n == 1
         station1 = data(4,1);
-        ysensor(:,i,station1) = data(:,1);
+        y_sensor(:,i,station1) = data(:,1);
     elseif n == 2
         station1 = data(4,1);
         station2 = data(4,2);
-        ysensor(:,i,station1) = data(:,1);
-        ysensor(:,i,station2) = data(:,2);
+        y_sensor(:,i,station1) = data(:,1);
+        y_sensor(:,i,station2) = data(:,2);
     end    
 end
 
@@ -82,9 +82,9 @@ for k = 1:N-1
     dy_KF = [];
     R_KF = R;
     for i = 1:12
-        if ~isnan(ysensor(1,k,i))
+        if ~isnan(y_sensor(1,k,i))
             y_star = measurement(x_star(:,k+1),sensor_pos(:,k+1,i));
-            dy_KF = vertcat(dy_KF, ysensor(1:3,k,i)-y_star);
+            dy_KF = vertcat(dy_KF, y_sensor(1:3,k,i)-y_star);
             H = vertcat(H,H_variant(x_star(:,k+1),sensor_pos(:,k+1,i)));
             if length(dy_KF) >= 4
                 R_KF = blkdiag(R,R);
@@ -120,64 +120,63 @@ plottrajectory(tvec,x_star,LKF,title,filename);
 %% Implement Extended Kalman Filter
 
 % Step 1: Initialize with x_plus_0 and P_plus_0
-
+Q_KF=eye(2)*1e-11;
 
 EKF = zeros(4,N);
-x_plus = x0;
+x_hat_plus = x0;
 P_plus = eye(4)*1e-3;
 
 
-for k = 2:N-1 % k represents k+1
+for k = 1:N-1 % k represents k+1
     
-    ts = tvec(k-1);
-    tf = tvec(k);
+    ts = tvec(k);
+    tf = tvec(k+1);
    
-    [F, Gamma] = F_Gamma_variant(x_plus(1),x_plus(3));
-    
-    
     % 1) Time update for k+1
-    [~, x] = ode45(@(t,s)orbit_prop_func(t,s),[ts tf],x_plus,opts);
-    x_minus = x(end,:)';
-    P_minus = F*P_plus*F' + Gamma*Q*Gamma';
+    [~, temp] = ode45(@(t,s)orbit_prop_func(t,s),[ts tf],x_hat_plus(:,k),opts);
+    x_hat_minus(:,k+1) = temp(end,:);
+    
+    [F, Gamma] = F_Gamma_variant(x_hat_plus(1,k),x_hat_plus(3,k));
+    P_minus = F*P_plus*F' + Gamma*Q_KF*Gamma';
     
     
     % 2) Measurement Update for k+1, work through all stations
     H = [];
-    e_KF = [];
-    R_KF = [];
+    y_hat_minus = [];
+    y_actual = [];
+    R_KF = R;
     for i = 1:12
-        if ~isnan(ysensor(1,k,i))
-            ynom_minus = measurement(x_minus,sensor_pos(:,k,i));
-            H = H_variant(x_minus,sensor_pos(:,k,i));
+        if ~isnan(y_sensor(1,k+1,i))
+            y_hat_minus = vertcat(y_hat_minus,...
+                measurement(x_hat_minus(:,k+1),sensor_pos(:,k+1,i)));
+            y_actual = vertcat(y_actual,y_sensor(1:3,k+1,i));
+            H = vertcat(H,...
+                H_variant(x_hat_minus(:,k+1),sensor_pos(:,k+1,i)));
             
-            e = ysensor(1:3,k,i) - ynom_minus;
-            e_KF = vertcat(e_KF,e);
-            
-            if length(e_KF) >= 4
+            if length(y_hat_minus) >= 4
                 R_KF = blkdiag(R,R);
             end
-            
-            
         end
     end
-    if isempty(H) == 1
+    if isempty(H)==1
         K = zeros(4,3);
         H = zeros(3,4);
-        e_KF = zeros(3,1);
+        innov = zeros(3,1);
     else
-        K = P_minus*H'*inv(H*P_minus*H'+R);
-    end    
-    x_plus = x_minus + K*e;
+        innov = y_actual - y_hat_minus;
+        K = P_minus*H'*inv(H*P_minus*H'+R_KF);  
+    end
+    x_hat_plus(:,k+1) = x_hat_minus(:,k+1) + K*innov;
     P_plus = (eye(4) - K*H)*P_minus;
     
     
-    EKF(:,k) = x_plus;
+    EKF(:,k) = x_hat_plus(:,k);
     
 end
 
 title = 'Extended Kalman Filter State Trajectory';
 filename = 'ASEN5044_FP_P3_EKF.png';
-plottrajectory(tvec,EKF,title,filename);
+plottrajectory(tvec,x_star,EKF,title,filename);
 
 
 %% Implement Unscented Kalman Filter
@@ -192,7 +191,7 @@ end
 
 title = 'Unscented Kalman Filter State Trajectory';
 filename = 'ASEN5044_FP_P3_UKF.png';
-plottrajectory(tvec,UKF,title,filename);
+plottrajectory(tvec,x_star,UKF,title,filename);
 
 
 
