@@ -185,7 +185,7 @@ for s=1:Nsim
         
         %compute NEES and NIS statistics
         NEESsshist(k) = (x_noisy(:,k)-x_hat(:,k))'*inv(P_plus)*(x_noisy(:,k)-x_hat(:,k));
-        NISsshist(k) = dy_KF'*inv(Sk)*dy_KF;
+        NISsshist(k) = dy_KF'*inv(Sk)*dy_KF / (length(dy_KF)/3);
     end
     NEESamps(s,:) = NEESsshist;
     NISamps(s,:) = NISsshist;
