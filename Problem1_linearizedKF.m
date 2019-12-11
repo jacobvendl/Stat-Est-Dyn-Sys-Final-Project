@@ -24,8 +24,12 @@ dx0 = [0, 0.01, 0, -0.01]';
 
 %STEP TWO - simulate perturbed ground truth state using ode45
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
-[T, x_star] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
+[T, x_star] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0+dx0,opts);
 x_star=x_star';
+
+%make perturbed state for comparison
+[T, x_nom] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
+x_nom=x_nom';
 
 %STEP THREE = simulate ground truth measurements using ode45 result
 X=x_star(1,:); Y=x_star(3,:); XD=x_star(2,:); YD=x_star(4,:);
@@ -79,13 +83,14 @@ end
 
 %TMT
 %set process noise
-Q_KF=eye(2)*1e-15;
+Q_process=eye(2)*1e-9;
 %set measurement noise covariance
 R=zeros(3); R(1,1)=0.01;R(2,2)=1;R(3,3)=0.01;
-Svq = chol(Q_KF,'lower');
+Svq = chol(Q_process,'lower');
 Svr = chol(R,'lower');
 Omega = [0 0; 1 0; 0 0; 0 1];
 
+Q_KF = eye(2)*3e-8;
 Nsim=50;
 NEESamps = zeros(Nsim,length(tvec)-1);
 NISamps = zeros(Nsim,length(tvec)-1);
@@ -205,8 +210,8 @@ r1x = chi2inv(alphaNEES/2,Nnx)./Nsim;
 r2x = chi2inv(1-alphaNEES/2,Nnx)./Nsim;
 figure; hold on; grid on; grid minor;
 plot(epsNEESbar,'ro','MarkerSize',6,'LineWidth',2)
-plot(r1x*ones(size(epsNEESbar)),'r--','LineWidth',2)
-plot(r2x*ones(size(epsNEESbar)),'r--','LineWidth',2)
+plot(r1x*ones(size(epsNEESbar)),'k--','LineWidth',2)
+plot(r2x*ones(size(epsNEESbar)),'k--','LineWidth',2)
 ylabel('NEES Statistics, avg \epsilon_x')
 xlabel('time step k')
 title(sprintf('NEES Estimation Results, N=%.0f',Nsim))
@@ -220,8 +225,8 @@ r1y = chi2inv(alphaNIS/2,Nny)./Nsim;
 r2y = chi2inv(1-alphaNIS/2,Nny)./Nsim;
 figure; hold on; grid on; grid minor;
 plot(epsNISbar,'bo','MarkerSize',6,'LineWidth',2)
-plot(r1y*ones(size(epsNISbar)),'b--','LineWidth',2)
-plot(r2y*ones(size(epsNISbar)),'b--','LineWidth',2)
+plot(r1y*ones(size(epsNISbar)),'k--','LineWidth',2)
+plot(r2y*ones(size(epsNISbar)),'k--','LineWidth',2)
 ylabel('NIS Statistics, avg \epsilon_y')
 xlabel('time step k')
 title(sprintf('NIS Estimation Results, N=%.0f',Nsim))
@@ -244,7 +249,7 @@ subplot(4,1,3); hold on; grid on; grid minor;
 ylabel('Y [km]')
 plot(tvec,x_noisy(3,:),'-')
 subplot(4,1,4); hold on; grid on; grid minor;
-ylabel('Ydot [km/s]')
+ylabel('Ydot [km/s]'); xlabel('Time [s]')
 plot(tvec,x_noisy(4,:),'-')
 
 %noisy linearized approximate measurement simulation
@@ -262,46 +267,67 @@ for i=1:12
     plot(tvec,y_noisy(3*i,:),'o')
 end
 
-%create ode45 simulation to compare against
-s0 = x0 + dx0;
-opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
-[T, x_perturbed] = ode45(@(t,s)orbit_prop_func(t,s),tvec,s0,opts);
-x_perturbed=x_perturbed';
-
 figure; hold on;
 sgtitle(sprintf('Linearized KF plotted against Nonlinear Perturbed Simulation \n dx=[%.4fkm %.4fkm/s %.4fkm %.4fkm/s]',dx0(1),dx0(2),dx0(3),dx0(4)))
 subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x_perturbed(1,:),'b-','LineWidth',2)
+plot(tvec,x_star(1,:),'b-','LineWidth',2)
 plot(tvec,x_hat(1,:),'r--','LineWidth',2)
 legend('ode45 perturbed','xhat+')
 ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,x_perturbed(2,:),'b-','LineWidth',2)
+plot(tvec,x_star(2,:),'b-','LineWidth',2)
 plot(tvec,x_hat(2,:),'r--','LineWidth',2)
 ylabel('Xdot [km/s]')
 subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,x_perturbed(3,:),'b-','LineWidth',2)
+plot(tvec,x_star(3,:),'b-','LineWidth',2)
 plot(tvec,x_hat(3,:),'r--','LineWidth',2)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,x_perturbed(4,:),'b-','LineWidth',2)
+plot(tvec,x_star(4,:),'b-','LineWidth',2)
 plot(tvec,x_hat(4,:),'r--','LineWidth',2)
-ylabel('Ydot [km/s]')
+ylabel('Ydot [km/s]'); xlabel('Time [s]')
 
 figure; hold on;
 sgtitle('Linearized KF State Estimation Errors')
 subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x_hat(1,:)-x_perturbed(1,:),'b-','LineWidth',2)
+plot(tvec,x_hat(1,:)-x_star(1,:),'b-','LineWidth',2)
+plot(tvec,x_hat(1,:)-x_star(1,:)+twoSigX,'k--')
+plot(tvec,x_hat(1,:)-x_star(1,:)-twoSigX,'k--')
+legend('xhat - xstar','+/- 2\sigma')
 ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,x_hat(2,:)-x_perturbed(2,:),'b-','LineWidth',2)
+plot(tvec,x_hat(2,:)-x_star(2,:),'b-','LineWidth',2)
+plot(tvec,x_hat(2,:)-x_star(2,:)+twoSigXdot,'k--')
+plot(tvec,x_hat(2,:)-x_star(2,:)-twoSigXdot,'k--')
 ylabel('Xdot [km/s]')
+ylim([-1 1])
 subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,x_hat(3,:)-x_perturbed(3,:),'b-','LineWidth',2)
+plot(tvec,x_hat(3,:)-x_star(3,:),'b-','LineWidth',2)
+plot(tvec,x_hat(3,:)-x_star(3,:)+twoSigY,'k--')
+plot(tvec,x_hat(3,:)-x_star(3,:)-twoSigY,'k--')
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,x_hat(4,:)-x_perturbed(4,:),'b-','LineWidth',2)
-ylabel('Ydot [km/s]')
+plot(tvec,x_hat(4,:)-x_star(4,:),'b-','LineWidth',2)
+plot(tvec,x_hat(4,:)-x_star(4,:)+twoSigYdot,'k--')
+plot(tvec,x_hat(4,:)-x_star(4,:)-twoSigYdot,'k--')
+ylabel('Ydot [km/s]'); xlabel('Time [s]')
+ylim([-1 1])
+
+figure; hold on
+sgtitle('Linearized Approx Perturbations vs Time')
+subplot(4,1,1); hold on; grid on; grid minor;
+plot(tvec,x_hat(1,:)-x_nom(1,:),'b-','LineWidth',2)
+ylabel('X [km]')
+subplot(4,1,2); hold on; grid on; grid minor;
+plot(tvec,x_hat(2,:)-x_nom(2,:),'b-','LineWidth',2)
+ylabel('Xdot [km/s]')
+subplot(4,1,3); hold on; grid on; grid minor;
+plot(tvec,x_hat(3,:)-x_nom(3,:),'b-','LineWidth',2)
+ylabel('Y [km]')
+subplot(4,1,4); hold on; grid on; grid minor;
+plot(tvec,x_hat(4,:)-x_nom(4,:),'b-','LineWidth',2)
+ylabel('Ydot [km/s]'); xlabel('Time [s]')
+
 
 
 %propagation function

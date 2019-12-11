@@ -190,7 +190,7 @@ plot(tvec,x_hat_plus(3,:),'b-','LineWidth',2)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
 plot(tvec,x_hat_plus(4,:),'b-','LineWidth',2)
-ylabel('Ydot [km/s]')
+ylabel('Ydot [km/s]'); xlabel('Time [s]')
 
 %create ode45 simulation to compare against
 s0 = x0 + dx0;
@@ -211,7 +211,7 @@ plot(tvec,x_hat_plus(3,:)-x_perturbed(3,:),'b-','LineWidth',2)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
 plot(tvec,x_hat_plus(4,:)-x_perturbed(4,:),'b-','LineWidth',2)
-ylabel('Ydot [km/s]')
+ylabel('Ydot [km/s]'); xlabel('Time [s]')
 
 
 

@@ -15,7 +15,7 @@ rE = 6378;               % km
 wE = 2*pi/86400;         % rad/s
 dt = 10;                 % s
 P = 2*pi*sqrt(r0^3/mu);  % s
-Q = eye(4)*1e-8;
+Q = eye(4)*1e-9;
 R = eye(3)*1e-3; R(2,2)=.1;
 
 %set x0
@@ -93,12 +93,14 @@ ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
 plot(tvec,x(2,:),'b-','LineWidth',2)
 ylabel('Xdot [km/s]')
+ylim([-10 10])
 subplot(4,1,3); hold on; grid on; grid minor;
 plot(tvec,x(3,:),'b-','LineWidth',2)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
 plot(tvec,x(4,:),'b-','LineWidth',2)
-ylabel('Ydot [km/s]')
+ylabel('Ydot [km/s]'); xlabel('Time [s]')
+ylim([-10 10])
 
 %create ode45 simulation to compare against
 s0 = x0 + dx0;
@@ -114,12 +116,14 @@ ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
 plot(tvec,x(2,:)-x_perturbed(2,:),'b-','LineWidth',2)
 ylabel('Xdot [km/s]')
+ylim([-1.5 1.5])
 subplot(4,1,3); hold on; grid on; grid minor;
 plot(tvec,x(3,:)-x_perturbed(3,:),'b-','LineWidth',2)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
 plot(tvec,x(4,:)-x_perturbed(4,:),'b-','LineWidth',2)
-ylabel('Ydot [km/s]')
+ylabel('Ydot [km/s]'); xlabel('Time [s]')
+ylim([-1.5 1.5])
 
 
 function [x1,X1,P1,X2]=utx(X,Wm,Wc,n,Q,tvec,t)

@@ -192,7 +192,7 @@ plot(tvec,x_hat(3,:)-x_star(3,:),'b-','LineWidth',2)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
 plot(tvec,x_hat(4,:)-x_star(4,:),'b-','LineWidth',2)
-ylabel('Ydot [km/s]')
+ylabel('Ydot [km/s]'); xlabel('Time [s]')
 
 
 %%
@@ -308,7 +308,7 @@ plot(tvec,x_hat(3,:)-x_star(3,:),'b-','LineWidth',2)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
 plot(tvec,x_hat(4,:)-x_star(4,:),'b-','LineWidth',2)
-ylabel('Ydot [km/s]')
+ylabel('Ydot [km/s]'); xlabel('Time [s]')
 
 %propagation function
 function [ ds ] = orbit_prop_func(t,s)
