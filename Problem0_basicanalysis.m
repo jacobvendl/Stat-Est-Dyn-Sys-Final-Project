@@ -140,6 +140,28 @@ ylabel('Ydot [km/s]')
 xlabel('Time [seconds]');
 saveas(fig,'Problem0_Nonlinear_Full.png','png');
 
+
+
+fig = figure; hold on; 
+set(fig,'Position',[100 100 900 600]);
+sgtitle('Nonlinear Dynamics Simulation, Deviation from Nominal')
+subplot(4,1,1); hold on; grid on; grid minor;
+plot(tvec,x_perturbed(1,:)-x_star(1,:),'b-','LineWidth',1.25)
+ylabel('\deltaX [km]')
+subplot(4,1,2); hold on; grid on; grid minor;
+plot(tvec,x_perturbed(2,:)-x_star(2,:),'b-','LineWidth',1.25)
+ylabel('\deltaXdot [km/s]')
+subplot(4,1,3); hold on; grid on; grid minor;
+plot(tvec,x_perturbed(3,:)-x_star(3,:),'b-','LineWidth',1.25)
+ylabel('\deltaY [km]')
+subplot(4,1,4); hold on; grid on; grid minor;
+plot(tvec,x_perturbed(4,:)-x_star(4,:),'b-','LineWidth',1.25)
+ylabel('\deltaYdot [km/s]')
+xlabel('Time [seconds]');
+saveas(fig,'Problem0_Nonlinear_Deviation.png','png');
+
+
+
 %full nonlinear measurement data simulation
 fig = figure; hold on; 
 set(fig,'Position',[100 100 900 600]);
@@ -213,6 +235,31 @@ for i=1:12
 end
 xlabel('Time [seconds]');
 saveas(fig,'Problem0_Linearized_Measurement.png','png');
+
+
+%linearized approximate solution
+fig = figure; hold on; 
+set(fig,'Position',[100 100 900 600]);
+sgtitle('Linearized vs Nonlinear Dynamics Simulation, Deviation from Nominal')
+subplot(4,1,1); hold on; grid on; grid minor;
+plot(tvec,x_perturbed(1,:)-x_star(1,:),'r-','LineWidth',1.25)
+plot(tvec,dx_lin(1,:),'b-','LineWidth',1.25)
+ylabel('\deltaX [km]')
+legend('Nonlinear','Linearized');
+subplot(4,1,2); hold on; grid on; grid minor;
+plot(tvec,x_perturbed(2,:)-x_star(2,:),'r-','LineWidth',1.25)
+plot(tvec,dx_lin(2,:),'b-','LineWidth',1.25)
+ylabel('\deltaXdot [km/s]')
+subplot(4,1,3); hold on; grid on; grid minor;
+plot(tvec,x_perturbed(3,:)-x_star(3,:),'r-','LineWidth',1.25)
+plot(tvec,dx_lin(3,:),'b-','LineWidth',1.25)
+ylabel('\deltaY [km]')
+subplot(4,1,4); hold on; grid on; grid minor;
+plot(tvec,x_perturbed(4,:)-x_star(4,:),'r-','LineWidth',1.25)
+plot(tvec,dx_lin(4,:),'b-','LineWidth',1.25)
+ylabel('\deltaYdot [km/s]')
+xlabel('Time [seconds]');
+saveas(fig,'Problem0_Compare_Deviation.png','png');
 
 %propagation function
 function [ ds ] = orbit_prop_func(t,s)
