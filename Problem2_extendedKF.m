@@ -18,7 +18,7 @@ dx0 = [0, 0.01, 0, 0.01]';
 Gamma = [0 0; 1 0; 0 0 ; 0 1];
 
 %set process noise
-Q_KF=eye(2)*1e-7; %Q_KF(1,2)=1e-12; Q_KF(2,1)=1e-12;
+Q_KF=eye(2)*1e-8; %Q_KF(1,2)=1e-12; Q_KF(2,1)=1e-12;
 %set measurement noise covariance
 R=zeros(3); R(1,1)=0.01;R(2,2)=1;R(3,3)=0.01;
 R=eye(3)*1e-3;
@@ -83,7 +83,7 @@ for s=1:Nsim
     
     %Extended KF
     x_hat_plus(:,1) = x0+dx0;
-    P_plus = eye(4)*1e9;
+    P_plus = eye(4)*1e6;
     for k=1:length(tvec)-1
         %call ode45 to propagate from k to k+1
         ts = tvec(k);

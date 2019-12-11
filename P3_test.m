@@ -89,7 +89,7 @@ for t=1:length(tvec)
             if ydata{t}(4,1) == i
                 y_noisy(3*i-2:3*i,t) = ydata{t}(1:3);
             elseif ydata{t}(4,2) == i
-                y_noisy(3*i-2:3*i,t) = ydata{t}(1:3);
+                y_noisy(3*i-2:3*i,t) = ydata{t}(1:3,2);
             else
                 y_noisy(3*i-2:3*i,t) = [NaN;NaN;NaN]';
             end
@@ -102,11 +102,11 @@ end
 
 Q_KF = Qtrue;
 R = Rtrue;
-Q_KF = eye(2)*1e-10;
+Q_KF = eye(2)*1e-9;
 
 % Implement Linearized Kalman Filter
 
-P_plus = eye(4)*1e4;
+P_plus = eye(4)*1e6;
 dx_hat_plus = dx0;
 dx_hat_minus = zeros(4,length(tvec));
 for k=1:length(tvec)-1
@@ -202,10 +202,10 @@ clear x_hat P_plus twoSigX twoSigXdot twoSigY twoSigYdot
 
 Q_KF = Qtrue;
 R = Rtrue;
-Q_KF = eye(2)*1e-12;
+Q_KF = eye(2)*1e-9;
 
 x_hat(:,1) = x0+dx0;
-P_plus = eye(4)*1e4;
+P_plus = eye(4)*1e6;
 for k=1:length(tvec)-1
     %call ode45 to propagate from k to k+1
     ts = tvec(k);
