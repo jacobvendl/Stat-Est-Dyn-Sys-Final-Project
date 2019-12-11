@@ -87,6 +87,57 @@ for i=1:12 %stations
     end
 end
 
+
+%STEP THREE = simulate ground truth measurements using ode45 result
+X=x_perturbed(1,:); Y=x_perturbed(3,:); XD=x_perturbed(2,:); YD=x_perturbed(4,:);
+Xs = zeros(12,length(T));
+Ys = zeros(12,length(T));
+XDs = zeros(12,length(T));
+YDs = zeros(12,length(T));
+rho = zeros(12,length(T));
+rhoDot = zeros(12,length(T));
+phi = zeros(12,length(T));
+y_perturbed = zeros(36,length(T));
+%now simulate the measurements for all time
+for i=1:12 %stations
+    theta = (i-1)*pi/6;
+    for t=1:length(T) %loop through one orbit period
+        currentTime = T(t);
+        
+        %find station position and velocity
+        Xs(i,t) = rE*cos(wE*currentTime + theta);
+        Ys(i,t) = rE*sin(wE*currentTime + theta);
+        XDs(i,t) = -rE*wE*sin(wE*currentTime + theta);
+        YDs(i,t) = rE*wE*cos(wE*currentTime + theta);
+        
+        %peform check at given time to see if s/c is visible
+        phi(i,t) = atan2((Y(t)-Ys(i,t)),(X(t)-Xs(i,t)));
+        thetaCheck = atan2(Ys(i,t),Xs(i,t));
+        if (thetaCheck-pi/2) > (thetaCheck+pi/2)
+            upperBound = thetaCheck-pi/2;
+            lowerBound = thetaCheck+pi/2;
+        else
+            upperBound = thetaCheck+pi/2;
+            lowerBound = thetaCheck-pi/2;
+        end
+        if (lowerBound <= phi(i,t) && phi(i,t) <= upperBound) ...
+                || (lowerBound-2*pi <= phi(i,t) && phi(i,t)<=upperBound-2*pi)... %accomodate phi wrapping
+                || (lowerBound+2*pi <= phi(i,t) && phi(i,t)<=upperBound+2*pi)
+            
+            rho(i,t) = sqrt((X(t)-Xs(i,t))^2 + (Y(t)-Ys(i,t))^2);
+            rhoDot(i,t) = ((X(t)-Xs(i,t))*(XD(t)-XDs(i,t)) + (Y(t)-Ys(i,t))*(YD(t)-YDs(i,t)))...
+                / rho(i,t);
+        else
+            rho(i,t) = nan;
+            rhoDot(i,t) = nan;
+            phi(i,t)=nan;
+        end
+        y_perturbed(3*i-2,t) = rho(i,t);
+        y_perturbed(3*i-1,t) = rhoDot(i,t);
+        y_perturbed(3*i,t) = phi(i,t);
+    end
+end
+
 %STEP FOUR - simulate linearized dynamics
 Svq = chol(Q,'lower');
 R = eye(3)*1e-6;%test R for a second
