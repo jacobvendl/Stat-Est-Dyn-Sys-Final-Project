@@ -20,8 +20,9 @@ R = eye(3)*1e-3; R(2,2)=.1;
 
 %set x0
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
+dx0 = [0, 0.01, 0, 0.01]';
 
-x(:,1) = x0;
+x(:,1) = x0+dx0;
 P_plus = eye(4)*1e6;
 
 %set UKF inputs
@@ -36,7 +37,7 @@ Wm=[lambda/c 0.5/c+zeros(1,2*L)];
 Wc=Wm;
 Wc(1)=Wc(1)+(1-alpha^2+beta);               
 c=sqrt(c);
-for k=1:length(tvec)
+for k=1:length(tvec)-1
     %call function to create 9 sigma points
     X_hat=sigmas(x(:,k),P_plus,c);
     
@@ -46,17 +47,34 @@ for k=1:length(tvec)
     %call uky to perform transform on measurement
     [y_hat_minus,~,Pyy,devY]=uty(X1,Wm,Wc,m,R,tvec,k);
     
-    %calculate cross-covariance matrix
-    Pxy=devX*diag(Wc)*devY';
-    
-    %5calculate Kalman gain
-    K=Pxy*inv(Pyy);
-    
-    %calculate state update
-    z=ydata{k+1}(1:3);
-    x(:,k+1)=x_hat_minus+K*(z-y_hat_minus);                             
-    %P_plus=P_minus-Pxy*inv(Pyy)*Pxy';          %covariance update
-    P_plus = P_minus - K*Pyy*K';
+    if isempty(devY)==1
+        x(:,k+1) = x_hat_minus;
+        P_plus = P_minus;
+    else 
+        %calculate cross-covariance matrix
+        Pxy=devX*diag(Wc)*devY';
+        
+        %5calculate Kalman gain
+        K=Pxy*inv(Pyy);
+        
+        %find provided data measurement at time
+        z = ydata{k+1}(1:3,1);
+        s = size(ydata{k+1});
+        if s(2) == 2 && length(y_hat_minus)>3 %two measurements recorded
+            z=vertcat(z,ydata{k+1}(1:3,2));
+        end
+        if s(2) == 1 && length(y_hat_minus)>3
+            y_hat_minus=y_hat_minus(1:3); %chop off measurements
+            K = K(1:4,1:3);
+            Pyy=Pyy(1:3,1:3);
+        end
+        
+        %calculate state update
+        x(:,k+1)=x_hat_minus+K*(z-y_hat_minus);
+        %P_plus=P_minus-Pxy*inv(Pyy)*Pxy';          %covariance update
+        P_plus = P_minus - K*Pyy*K';
+        P_plus = (P_plus+P_plus')/2;
+    end
     
     %save off 2 sigma values
     twoSigX(k+1) = 2*sqrt(P_plus(1,1));
@@ -65,6 +83,44 @@ for k=1:length(tvec)
     twoSigYdot(k+1) = 2*sqrt(P_plus(4,4));
     fprintf('k=%.0f\n',k)
 end
+
+%make plots
+figure; hold on; 
+sgtitle('UKF Predicted States')
+subplot(4,1,1); hold on; grid on; grid minor;
+plot(tvec,x(1,:),'b-','LineWidth',2)
+ylabel('X [km]')
+subplot(4,1,2); hold on; grid on; grid minor;
+plot(tvec,x(2,:),'b-','LineWidth',2)
+ylabel('Xdot [km/s]')
+subplot(4,1,3); hold on; grid on; grid minor;
+plot(tvec,x(3,:),'b-','LineWidth',2)
+ylabel('Y [km]')
+subplot(4,1,4); hold on; grid on; grid minor;
+plot(tvec,x(4,:),'b-','LineWidth',2)
+ylabel('Ydot [km/s]')
+
+%create ode45 simulation to compare against
+s0 = x0 + dx0;
+opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
+[T, x_perturbed] = ode45(@(t,s)orbit_prop_func(t,s),tvec,s0,opts);
+x_perturbed=x_perturbed';
+
+figure; hold on;
+sgtitle('UKF State Estimation Errors')
+subplot(4,1,1); hold on; grid on; grid minor;
+plot(tvec,x(1,:)-x_perturbed(1,:),'b-','LineWidth',2)
+ylabel('X [km]')
+subplot(4,1,2); hold on; grid on; grid minor;
+plot(tvec,x(2,:)-x_perturbed(2,:),'b-','LineWidth',2)
+ylabel('Xdot [km/s]')
+subplot(4,1,3); hold on; grid on; grid minor;
+plot(tvec,x(3,:)-x_perturbed(3,:),'b-','LineWidth',2)
+ylabel('Y [km]')
+subplot(4,1,4); hold on; grid on; grid minor;
+plot(tvec,x(4,:)-x_perturbed(4,:),'b-','LineWidth',2)
+ylabel('Ydot [km/s]')
+
 
 function [x1,X1,P1,X2]=utx(X,Wm,Wc,n,Q,tvec,t)
 %ut for state
@@ -108,8 +164,8 @@ global rE wE
 %        P2: transformed covariance
 %        Z2: transformed deviations
 L=size(X1,2);
-z1=zeros(m,1);
-Z1=zeros(m,L);
+z1=[];
+Z1=[];
 for k=1:L
     %deterministic function for finding y
     [~,temp] = ode45(@(t,s)orbit_prop_func(t,s),[tvec(t) tvec(t+1)],X1(:,k),odeset('RelTol',1e-12,'AbsTol',1e-12));
@@ -118,7 +174,7 @@ for k=1:L
     meas=[];
     for i=1:12
         theta = (i-1)*pi/6;
-        currentTime = tvec(k);
+        currentTime = tvec(t);
         
         %find station position and velocity
         Xs = rE*cos(wE*currentTime + theta);
@@ -145,11 +201,27 @@ for k=1:L
             meas = vertcat(meas,[rho;rhoDot;phi]);
         end
     end
+    if isempty(meas)==1
+        Z1=[];
+        z1=[];
+        break
+    end
     Z1(:,k)=meas;
+    if k==1
+        z1 = zeros(length(meas),1);
+    end
     z1=z1+Wm(k)*Z1(:,k);
 end
-Z2=Z1-z1(:,ones(1,L));
-P2=Z2*diag(Wc)*Z2'+R;
+if isempty(Z1)==1
+    Z2=[];
+    P2=[];
+else
+    Z2=Z1-z1(:,ones(1,L));
+    if length(meas)>3
+        R = blkdiag(R,R);
+    end
+    P2=Z2*diag(Wc)*Z2'+R;
+end
 end
 
 function X=sigmas(x,P,c)
