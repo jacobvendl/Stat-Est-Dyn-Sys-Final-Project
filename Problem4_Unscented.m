@@ -124,48 +124,26 @@ ylabel('Ydot [km/s]')
 
 function [x1,X1,P1,X2]=utx(X,Wm,Wc,n,Q,tvec,t)
 %ut for state
-%Input:
-%        X: sigma points
-%       Wm: weights for mean
-%       Wc: weights for covraiance
-%        n: number of outputs of f
-%        R: additive covariance
-%Output:
-%        x1: transformed mean
-%        X1: transformed sampling points
-%        P1: transformed covariance
-%        X2: transformed deviations
 L=size(X,2);
-x1=zeros(n,1);
-X1=zeros(n,L);
+x1=zeros(n,1);      %set transformed average
+X1=zeros(n,L);      %set transformed samples
 for k=1:L
     %deterministic function for finding x
     [~,temp] = ode45(@(t,s)orbit_prop_func(t,s),[tvec(t) tvec(t+1)],X(:,k),odeset('RelTol',1e-12,'AbsTol',1e-12));
     X1(:,k)=temp(end,:);
     x1=x1+Wm(k)*X1(:,k);
 end
-X2=X1-x1(:,ones(1,L));
-P1=X2*diag(Wc)*X2'+Q;
+X2=X1-x1(:,ones(1,L));  %set transformed deviations
+P1=X2*diag(Wc)*X2'+Q;   %set transformed covariance
 end
 
 function [z1,Z1,P2,Z2]=uty(X1,Wm,Wc,m,R,tvec,t)
 global rE wE
 %ut for measurements
-%Input:
-%        f: nonlinear map
-%        X: sigma points
-%       Wm: weights for mean
-%       Wc: weights for covraiance
-%        n: number of outputs of f
-%        R: additive covariance
-%Output:
-%        z1: transformed mean
-%        Z1: transformed sampling points
-%        P2: transformed covariance
-%        Z2: transformed deviations
 L=size(X1,2);
-z1=[];
-Z1=[];
+
+z1=[];      %set transformed average
+Z1=[];      %set transformed samples
 for k=1:L
     %deterministic function for finding y
     [~,temp] = ode45(@(t,s)orbit_prop_func(t,s),[tvec(t) tvec(t+1)],X1(:,k),odeset('RelTol',1e-12,'AbsTol',1e-12));
@@ -212,29 +190,26 @@ for k=1:L
     end
     z1=z1+Wm(k)*Z1(:,k);
 end
+%perform checks to make sure a measurement came through and handle the case
+%where it doesn't
 if isempty(Z1)==1
     Z2=[];
-    P2=[];
+    P2=[];          
 else
-    Z2=Z1-z1(:,ones(1,L));
+    Z2=Z1-z1(:,ones(1,L));          %set transformed deviations
     if length(meas)>3
         R = blkdiag(R,R);
     end
-    P2=Z2*diag(Wc)*Z2'+R;
+    P2=Z2*diag(Wc)*Z2'+R;           %set transformed covariance
 end
 end
 
 function X=sigmas(x,P,c)
 %calculate sigma points around the reference point
-%Inputs:
-%       x: reference point
-%       P: covariance
-%       c: coefficient
-%Output:
-%       X: Sigma points
-A = c*chol(P)';
-Y = x(:,ones(1,numel(x)));
-X = [x Y+A Y-A];
+%NOTE: c=sqrt(L+lambda), that step has already been handled
+A = c*chol(P)'; %perform chol decomp
+Y = x(:,ones(1,numel(x)));  %lay framework for sigma distribution based on given reference point
+X = [x Y+A Y-A];    %calculate 9 sigma points based on chol decomposition
 end
 
 function [ ds ] = orbit_prop_func(t,s)
