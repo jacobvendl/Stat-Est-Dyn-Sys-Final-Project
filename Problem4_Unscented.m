@@ -15,9 +15,8 @@ rE = 6378;               % km
 wE = 2*pi/86400;         % rad/s
 dt = 10;                 % s
 P = 2*pi*sqrt(r0^3/mu);  % s
-Q = eye(4)*1e-12;
+Q = eye(4)*1e-8;
 R = eye(3)*1e-3; R(2,2)=.1;
-
 
 %set x0
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
@@ -25,27 +24,41 @@ x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
 x(:,1) = x0;
 P_plus = eye(4)*1e6;
 
+%set UKF inputs
 L=4;  %states
 m=3;  %measurements
 alpha=1e-4;   %TUNE
 ki=0;         %TUNE
 beta=2;       %TUNE
-lambda=alpha^2*(L+ki)-L;                    %scaling factor
-c=L+lambda;                                 %scaling factor
-Wm=[lambda/c 0.5/c+zeros(1,2*L)];           %weights for means
+lambda=alpha^2*(L+ki)-L;                    
+c=L+lambda;                                
+Wm=[lambda/c 0.5/c+zeros(1,2*L)];           
 Wc=Wm;
-Wc(1)=Wc(1)+(1-alpha^2+beta);               %weights for covariance
+Wc(1)=Wc(1)+(1-alpha^2+beta);               
 c=sqrt(c);
 for k=1:length(tvec)
+    %call function to create 9 sigma points
     X_hat=sigmas(x(:,k),P_plus,c);
+    
+    %call ukx to perform transform on state
     [x_hat_minus,X1,P_minus,devX]=utx(X_hat,Wm,Wc,L,Q,tvec,k);
+    
+    %call uky to perform transform on measurement
     [y_hat_minus,~,Pyy,devY]=uty(X1,Wm,Wc,m,R,tvec,k);
+    
+    %calculate cross-covariance matrix
     Pxy=devX*diag(Wc)*devY';
+    
+    %5calculate Kalman gain
     K=Pxy*inv(Pyy);
+    
+    %calculate state update
     z=ydata{k+1}(1:3);
-    x(:,k+1)=x_hat_minus+K*(z-y_hat_minus);                              %state update
+    x(:,k+1)=x_hat_minus+K*(z-y_hat_minus);                             
     %P_plus=P_minus-Pxy*inv(Pyy)*Pxy';          %covariance update
     P_plus = P_minus - K*Pyy*K';
+    
+    %save off 2 sigma values
     twoSigX(k+1) = 2*sqrt(P_plus(1,1));
     twoSigXdot(k+1) = 2*sqrt(P_plus(2,2));
     twoSigY(k+1) = 2*sqrt(P_plus(3,3));
@@ -54,9 +67,8 @@ for k=1:length(tvec)
 end
 
 function [x1,X1,P1,X2]=utx(X,Wm,Wc,n,Q,tvec,t)
-%Unscented Transformation
+%ut for state
 %Input:
-%        f: nonlinear map
 %        X: sigma points
 %       Wm: weights for mean
 %       Wc: weights for covraiance
@@ -82,7 +94,7 @@ end
 
 function [z1,Z1,P2,Z2]=uty(X1,Wm,Wc,m,R,tvec,t)
 global rE wE
-%Unscented Transformation
+%ut for measurements
 %Input:
 %        f: nonlinear map
 %        X: sigma points
@@ -133,7 +145,6 @@ for k=1:L
             meas = vertcat(meas,[rho;rhoDot;phi]);
         end
     end
-
     Z1(:,k)=meas;
     z1=z1+Wm(k)*Z1(:,k);
 end
@@ -142,7 +153,7 @@ P2=Z2*diag(Wc)*Z2'+R;
 end
 
 function X=sigmas(x,P,c)
-%Sigma points around reference point
+%calculate sigma points around the reference point
 %Inputs:
 %       x: reference point
 %       P: covariance
@@ -155,7 +166,7 @@ X = [x Y+A Y-A];
 end
 
 function [ ds ] = orbit_prop_func(t,s)
-
+%propagation function for motion
 mu = 398600;
 
 x = s(1);
