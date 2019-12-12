@@ -18,16 +18,20 @@ dx0 = [0, 0.01, 0, 0.01]';
 Gamma = [0 0; 1 0; 0 0 ; 0 1];
 
 %set process noise
-Q_KF=eye(2)*1e-8; %Q_KF(1,2)=1e-12; Q_KF(2,1)=1e-12;
+Q_process=eye(2)*1e-9;
 %set measurement noise covariance
 R=zeros(3); R(1,1)=0.01;R(2,2)=1;R(3,3)=0.01;
-R=eye(3)*1e-3;
-Svq = chol(Q_KF,'lower');
+Svq = chol(Q_process,'lower');
 Svr = chol(R,'lower');
 
+s0=x0+dx0;
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
-[T, x_star] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
+[T, x_star] = ode45(@(t,s)orbit_prop_func(t,s),tvec,s0,opts);
 x_star=x_star';
+
+opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
+[T, x_nom] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
+x_nom=x_nom';
 
 Nsim=50;
 NEESamps = zeros(Nsim,length(tvec)-1);
@@ -83,7 +87,8 @@ for s=1:Nsim
     
     %Extended KF
     x_hat_plus(:,1) = x0+dx0;
-    P_plus = eye(4)*1e6;
+    P_plus = eye(4)*1e3;
+    Q_KF = eye(2)*1e-7;
     for k=1:length(tvec)-1
         %call ode45 to propagate from k to k+1
         ts = tvec(k);
@@ -136,6 +141,12 @@ for s=1:Nsim
         %Joseph formulation
         P_plus =(eye(4)-K*H)*P_minus*(eye(4)-K*H)' + K*R_KF*K';
         
+        %save off covariance info
+        twoSigX(k) = 2*sqrt(P_plus(1,1));
+        twoSigXdot(k) = 2*sqrt(P_plus(2,2));
+        twoSigY(k) = 2*sqrt(P_plus(3,3));
+        twoSigYdot(k) = 2*sqrt(P_plus(4,4));
+        
         %compute NEES and NIS statistics
         NEESsshist(k) = (x_noisy(:,k)-x_hat_plus(:,k))'*inv(P_plus)*(x_noisy(:,k)-x_hat_plus(:,k));
         NISsshist(k) = innov'*inv(Sk)*innov / (length(innov)/3);
@@ -145,6 +156,10 @@ for s=1:Nsim
     NISamps(s,:) = NISsshist;
     fprintf('s=%.0f \n',s)
 end
+twoSigX(1401) = 2*sqrt(P_plus(1,1));
+twoSigXdot(1401) = 2*sqrt(P_plus(2,2));
+twoSigY(1401) = 2*sqrt(P_plus(3,3));
+twoSigYdot(1401) = 2*sqrt(P_plus(4,4));
 
 %plot NEES statistics
 epsNEESbar = mean(NEESamps,1);
@@ -154,8 +169,8 @@ r1x = chi2inv(alphaNEES/2,Nnx)./Nsim;
 r2x = chi2inv(1-alphaNEES/2,Nnx)./Nsim;
 figure; hold on; grid on; grid minor;
 plot(epsNEESbar,'ro','MarkerSize',6,'LineWidth',2)
-plot(r1x*ones(size(epsNEESbar)),'r--','LineWidth',2)
-plot(r2x*ones(size(epsNEESbar)),'r--','LineWidth',2)
+plot(r1x*ones(size(epsNEESbar)),'k--','LineWidth',2)
+plot(r2x*ones(size(epsNEESbar)),'k--','LineWidth',2)
 ylabel('NEES Statistics, avg \epsilon_x')
 xlabel('time step k')
 title(sprintf('NEES Estimation Results, N=%.0f',Nsim))
@@ -169,8 +184,8 @@ r1y = chi2inv(alphaNIS/2,Nny)./Nsim;
 r2y = chi2inv(1-alphaNIS/2,Nny)./Nsim;
 figure; hold on; grid on; grid minor;
 plot(epsNISbar,'bo','MarkerSize',6,'LineWidth',2)
-plot(r1y*ones(size(epsNISbar)),'b--','LineWidth',2)
-plot(r2y*ones(size(epsNISbar)),'b--','LineWidth',2)
+plot(r1y*ones(size(epsNISbar)),'k--','LineWidth',2)
+plot(r2y*ones(size(epsNISbar)),'k--','LineWidth',2)
 ylabel('NIS Statistics, avg \epsilon_y')
 xlabel('time step k')
 title(sprintf('NIS Estimation Results, N=%.0f',Nsim))
@@ -192,25 +207,30 @@ subplot(4,1,4); hold on; grid on; grid minor;
 plot(tvec,x_hat_plus(4,:),'b-','LineWidth',2)
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
 
-%create ode45 simulation to compare against
-s0 = x0 + dx0;
-opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
-[T, x_perturbed] = ode45(@(t,s)orbit_prop_func(t,s),tvec,s0,opts);
-x_perturbed=x_perturbed';
+
 
 figure; hold on;
 sgtitle('EKF State Estimation Errors')
 subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x_hat_plus(1,:)-x_perturbed(1,:),'b-','LineWidth',2)
+plot(tvec,x_hat_plus(1,:)-x_star(1,:),'b-','LineWidth',2)
+plot(tvec,twoSigX,'k--')
+plot(tvec,-twoSigX,'k--')
+legend('xhat - xstar','+/- 2\sigma')
 ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,x_hat_plus(2,:)-x_perturbed(2,:),'b-','LineWidth',2)
+plot(tvec,x_hat_plus(2,:)-x_star(2,:),'b-','LineWidth',2)
+plot(tvec,twoSigXdot,'k--')
+plot(tvec,-twoSigXdot,'k--')
 ylabel('Xdot [km/s]')
 subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,x_hat_plus(3,:)-x_perturbed(3,:),'b-','LineWidth',2)
+plot(tvec,x_hat_plus(3,:)-x_star(3,:),'b-','LineWidth',2)
+plot(tvec,twoSigY,'k--')
+plot(tvec,-twoSigY,'k--')
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,x_hat_plus(4,:)-x_perturbed(4,:),'b-','LineWidth',2)
+plot(tvec,x_hat_plus(4,:)-x_star(4,:),'b-','LineWidth',2)
+plot(tvec,twoSigYdot,'k--')
+plot(tvec,-twoSigYdot,'k--')
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
 
 

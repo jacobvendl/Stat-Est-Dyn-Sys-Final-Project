@@ -15,12 +15,21 @@ rE = 6378;               % km
 wE = 2*pi/86400;         % rad/s
 dt = 10;                 % s
 P = 2*pi*sqrt(r0^3/mu);  % s
-Q = eye(4)*1e-9;
+Q = eye(4)*1e-9; Q(1,1)=0; Q(3,3)=0;
 R = eye(3)*1e-3; R(2,2)=.1;
 
 %set x0
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
 dx0 = [0, 0.01, 0, 0.01]';
+
+s0=x0+dx0;
+opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
+[T, x_star] = ode45(@(t,s)orbit_prop_func(t,s),tvec,s0,opts);
+x_star=x_star';
+
+opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
+[T, x_nom] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
+x_nom=x_nom';
 
 x(:,1) = x0+dx0;
 P_plus = eye(4)*1e6;
