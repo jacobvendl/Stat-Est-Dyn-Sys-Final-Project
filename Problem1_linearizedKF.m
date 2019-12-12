@@ -90,7 +90,7 @@ Svq = chol(Q_process,'lower');
 Svr = chol(R,'lower');
 Omega = [0 0; 1 0; 0 0; 0 1];
 
-Q_KF = eye(2)*3e-8;
+
 Nsim=50;
 NEESamps = zeros(Nsim,length(tvec)-1);
 NISamps = zeros(Nsim,length(tvec)-1);
@@ -101,7 +101,6 @@ for s=1:Nsim
     rhoDot_noisy = zeros(12,length(T));
     phi_noisy = zeros(12,length(T));
     y_noisy = zeros(36,length(T));
-    P_p_0 = 1e6*eye(4);
     for k=1:length(tvec)
         %calculate process noise and measurement noise for the time step
         qk = randn(2,1);
@@ -141,8 +140,10 @@ for s=1:Nsim
         end
     end
     
-    %initialize KF
-    P_plus = P_p_0;
+    %Linearized KF
+    Q_KF = eye(2)*3e-8;
+    P_plus = 1e3*eye(4);
+    
     dx_hat_plus = dx0;
     dx_hat_minus = zeros(4,length(tvec));
     x_hat = zeros(4,length(tvec));
@@ -291,25 +292,25 @@ figure; hold on;
 sgtitle('Linearized KF State Estimation Errors')
 subplot(4,1,1); hold on; grid on; grid minor;
 plot(tvec,x_hat(1,:)-x_star(1,:),'b-','LineWidth',2)
-plot(tvec,x_hat(1,:)-x_star(1,:)+twoSigX,'k--')
-plot(tvec,x_hat(1,:)-x_star(1,:)-twoSigX,'k--')
+plot(tvec,twoSigX,'k--')
+plot(tvec,-twoSigX,'k--')
 legend('xhat - xstar','+/- 2\sigma')
 ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
 plot(tvec,x_hat(2,:)-x_star(2,:),'b-','LineWidth',2)
-plot(tvec,x_hat(2,:)-x_star(2,:)+twoSigXdot,'k--')
-plot(tvec,x_hat(2,:)-x_star(2,:)-twoSigXdot,'k--')
+plot(tvec,twoSigXdot,'k--')
+plot(tvec,-twoSigXdot,'k--')
 ylabel('Xdot [km/s]')
 ylim([-1 1])
 subplot(4,1,3); hold on; grid on; grid minor;
 plot(tvec,x_hat(3,:)-x_star(3,:),'b-','LineWidth',2)
-plot(tvec,x_hat(3,:)-x_star(3,:)+twoSigY,'k--')
-plot(tvec,x_hat(3,:)-x_star(3,:)-twoSigY,'k--')
+plot(tvec,twoSigY,'k--')
+plot(tvec,-twoSigY,'k--')
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
 plot(tvec,x_hat(4,:)-x_star(4,:),'b-','LineWidth',2)
-plot(tvec,x_hat(4,:)-x_star(4,:)+twoSigYdot,'k--')
-plot(tvec,x_hat(4,:)-x_star(4,:)-twoSigYdot,'k--')
+plot(tvec,twoSigYdot,'k--')
+plot(tvec,-twoSigYdot,'k--')
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
 ylim([-1 1])
 
