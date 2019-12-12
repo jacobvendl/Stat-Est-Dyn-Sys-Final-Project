@@ -38,7 +38,7 @@ x_perturbed = x_perturbed';
 x_star = x_star';
 
 %STEP THREE = simulate ground truth measurements using ode45 result
-X=x_star(1,:); Y=x_star(3,:); XD=x_star(2,:); YD=x_star(4,:);
+X=x_perturbed(1,:); Y=x_perturbed(3,:); XD=x_perturbed(2,:); YD=x_perturbed(4,:);
 Xs = zeros(12,length(T));
 Ys = zeros(12,length(T));
 XDs = zeros(12,length(T));
