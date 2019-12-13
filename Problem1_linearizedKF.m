@@ -28,8 +28,8 @@ opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
 x_star=x_star';
 
 %make perturbed state for comparison
-[T, x_perturb] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
-x_perturb=x_perturb';
+[T, x_true] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
+x_true=x_true';
 
 %STEP THREE = simulate ground truth measurements using ode45 result
 X=x_star(1,:); Y=x_star(3,:); XD=x_star(2,:); YD=x_star(4,:);
@@ -107,7 +107,7 @@ for s=1:Nsim
         wk = (Svq*qk);
         
         %add the noise to the state output
-        x_noisy(:,k) = x_star(:,k) + dt*Omega*wk;
+        x_noisy(:,k) = x_true(:,k) + dt*Omega*wk;
         
         %loop through the stations and simulate linearized measurements
         for i=1:12
@@ -300,24 +300,24 @@ fig = figure; hold on;
 set(fig,'Position',[100 100 900 600]);
 sgtitle('LKF, State Estimation Errors')
 subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x_hat(1,:)-x_star(1,:),'b-','LineWidth',1.25)
+plot(tvec,x_hat(1,:)-x_true(1,:),'b-','LineWidth',1.25)
 plot(tvec,twoSigX,'k--','LineWidth',1)
 plot(tvec,-twoSigX,'k--','LineWidth',1)
-legend('xhat - xstar','+/- 2\sigma')
+legend('x_{hat} - x_{true}','+/- 2\sigma')
 ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,x_hat(2,:)-x_star(2,:),'b-','LineWidth',1.25)
+plot(tvec,x_hat(2,:)-x_true(2,:),'b-','LineWidth',1.25)
 plot(tvec,twoSigXdot,'k--','LineWidth',1)
 plot(tvec,-twoSigXdot,'k--','LineWidth',1)
 ylabel('Xdot [km/s]')
 ylim([-1 1])
 subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,x_hat(3,:)-x_star(3,:),'b-','LineWidth',1.25)
+plot(tvec,x_hat(3,:)-x_true(3,:),'b-','LineWidth',1.25)
 plot(tvec,twoSigY,'k--','LineWidth',1)
 plot(tvec,-twoSigY,'k--','LineWidth',1)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,x_hat(4,:)-x_star(4,:),'b-','LineWidth',1.25)
+plot(tvec,x_hat(4,:)-x_true(4,:),'b-','LineWidth',1.25)
 plot(tvec,twoSigYdot,'k--','LineWidth',1)
 plot(tvec,-twoSigYdot,'k--','LineWidth',1)
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
