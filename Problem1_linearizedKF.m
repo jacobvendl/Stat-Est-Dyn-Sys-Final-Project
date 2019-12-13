@@ -28,8 +28,8 @@ opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
 x_star=x_star';
 
 %make perturbed state for comparison
-[T, x_nom] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
-x_nom=x_nom';
+[T, x_perturb] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
+x_perturb=x_perturb';
 
 %STEP THREE = simulate ground truth measurements using ode45 result
 X=x_star(1,:); Y=x_star(3,:); XD=x_star(2,:); YD=x_star(4,:);
@@ -209,53 +209,60 @@ alphaNEES = 0.05; %significance level
 Nnx = Nsim*4; %N*n
 r1x = chi2inv(alphaNEES/2,Nnx)./Nsim;
 r2x = chi2inv(1-alphaNEES/2,Nnx)./Nsim;
-figure; hold on; grid on; grid minor;
-plot(epsNEESbar,'ro','MarkerSize',6,'LineWidth',2)
+fig = figure; hold on; grid on; grid minor;
+set(fig,'Position',[100 100 900 600]);
+plot(epsNEESbar,'ro','MarkerSize',6,'LineWidth',1.5)
 plot(r1x*ones(size(epsNEESbar)),'k--','LineWidth',2)
 plot(r2x*ones(size(epsNEESbar)),'k--','LineWidth',2)
 ylabel('NEES Statistics, avg \epsilon_x')
 xlabel('time step k')
-title(sprintf('NEES Estimation Results, N=%.0f',Nsim))
+title(sprintf('LKF, NEES Estimation Results, N=%.0f',Nsim))
 legend('NEES @ time k','r_1 bound','r_2 bound')
 ylim([0 10])
+saveas(fig,'Problem1_NEES.png','png');
 
 epsNISbar = mean(NISamps,1);
 alphaNIS = 0.05; %significance level
 Nny = Nsim*3; %N*p
 r1y = chi2inv(alphaNIS/2,Nny)./Nsim;
 r2y = chi2inv(1-alphaNIS/2,Nny)./Nsim;
-figure; hold on; grid on; grid minor;
-plot(epsNISbar,'bo','MarkerSize',6,'LineWidth',2)
+fig = figure; hold on; grid on; grid minor;
+set(fig,'Position',[100 100 900 600]);
+plot(epsNISbar,'bo','MarkerSize',6,'LineWidth',1.5)
 plot(r1y*ones(size(epsNISbar)),'k--','LineWidth',2)
 plot(r2y*ones(size(epsNISbar)),'k--','LineWidth',2)
 ylabel('NIS Statistics, avg \epsilon_y')
 xlabel('time step k')
-title(sprintf('NIS Estimation Results, N=%.0f',Nsim))
+title(sprintf('LKF, NIS Estimation Results, N=%.0f',Nsim))
 legend('NIS @ time k','r_1 bound','r_2 bound')
 ylim([0 10])
+saveas(fig,'Problem1_NIS.png','png');
 
 %save out one of the simulated states for plotting purposes
 x_hat = x_star + dx_hat_plus;
 
 %total states vs time for noisy linearized dynamics model
-figure; hold on;
-sgtitle(sprintf('States vs. Time, Linearized Approximate Dynamics Simulation \n dx =[%.4fkm %.4fkm/s %.4fkm %.4fkm/s]',dx0(1),dx0(2),dx0(3),dx0(4)))
+fig = figure; hold on;
+set(fig,'Position',[100 100 900 600]);
+sgtitle(sprintf('LKF, Simulated Noisy Ground Truth Data \n dx =[%.4fkm %.4fkm/s %.4fkm %.4fkm/s]',dx0(1),dx0(2),dx0(3),dx0(4)))
 subplot(4,1,1); hold on; grid on; grid minor;
 ylabel('X [km]')
-plot(tvec,x_noisy(1,:),'-')
+plot(tvec,x_noisy(1,:),'b-','LineWidth',1.25)
 subplot(4,1,2); hold on; grid on; grid minor;
 ylabel('Xdot [km/s]')
-plot(tvec,x_noisy(2,:),'-')
+plot(tvec,x_noisy(2,:),'b-','LineWidth',1.25)
 subplot(4,1,3); hold on; grid on; grid minor;
 ylabel('Y [km]')
-plot(tvec,x_noisy(3,:),'-')
+plot(tvec,x_noisy(3,:),'b-','LineWidth',1.25)
 subplot(4,1,4); hold on; grid on; grid minor;
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
-plot(tvec,x_noisy(4,:),'-')
+plot(tvec,x_noisy(4,:),'b-','LineWidth',1.25)
+saveas(fig,'Problem1_Noisy_GT.png','png');
 
 %noisy linearized approximate measurement simulation
-figure; hold on;
-sgtitle('Approximate Linearized Noisy Measurement Simulation')
+fig = figure; hold on;
+set(fig,'Position',[100 100 900 600]);
+sgtitle('LKF, Simulated Noisy Measurement Data')
 subplot(3,1,1); hold on; grid on; grid minor; ylabel('rho^i [km]')
 subplot(3,1,2); hold on; grid on; grid minor; ylabel('rhodot^i [km/s]')
 subplot(3,1,3); hold on; grid on; grid minor; ylabel('\phi^i [rad]')
@@ -267,67 +274,70 @@ for i=1:12
     subplot(3,1,3);
     plot(tvec,y_noisy(3*i,:),'o')
 end
+saveas(fig,'Problem1_Noisy_Y.png','png');
 
-figure; hold on;
-sgtitle(sprintf('Linearized KF plotted against Nonlinear Perturbed Simulation \n dx=[%.4fkm %.4fkm/s %.4fkm %.4fkm/s]',dx0(1),dx0(2),dx0(3),dx0(4)))
-subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x_star(1,:),'b-','LineWidth',2)
-plot(tvec,x_hat(1,:),'r--','LineWidth',2)
-legend('ode45 perturbed','xhat+')
-ylabel('X [km]')
-subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,x_star(2,:),'b-','LineWidth',2)
-plot(tvec,x_hat(2,:),'r--','LineWidth',2)
-ylabel('Xdot [km/s]')
-subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,x_star(3,:),'b-','LineWidth',2)
-plot(tvec,x_hat(3,:),'r--','LineWidth',2)
-ylabel('Y [km]')
-subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,x_star(4,:),'b-','LineWidth',2)
-plot(tvec,x_hat(4,:),'r--','LineWidth',2)
-ylabel('Ydot [km/s]'); xlabel('Time [s]')
+% figure; hold on;
+% sgtitle(sprintf('Linearized KF plotted against Nonlinear Perturbed Simulation \n dx=[%.4fkm %.4fkm/s %.4fkm %.4fkm/s]',dx0(1),dx0(2),dx0(3),dx0(4)))
+% subplot(4,1,1); hold on; grid on; grid minor;
+% plot(tvec,x_star(1,:),'b-','LineWidth',2)
+% plot(tvec,x_hat(1,:),'r--','LineWidth',2)
+% legend('ode45 perturbed','xhat+')
+% ylabel('X [km]')
+% subplot(4,1,2); hold on; grid on; grid minor;
+% plot(tvec,x_star(2,:),'b-','LineWidth',2)
+% plot(tvec,x_hat(2,:),'r--','LineWidth',2)
+% ylabel('Xdot [km/s]')
+% subplot(4,1,3); hold on; grid on; grid minor;
+% plot(tvec,x_star(3,:),'b-','LineWidth',2)
+% plot(tvec,x_hat(3,:),'r--','LineWidth',2)
+% ylabel('Y [km]')
+% subplot(4,1,4); hold on; grid on; grid minor;
+% plot(tvec,x_star(4,:),'b-','LineWidth',2)
+% plot(tvec,x_hat(4,:),'r--','LineWidth',2)
+% ylabel('Ydot [km/s]'); xlabel('Time [s]')
 
-figure; hold on;
-sgtitle('Linearized KF State Estimation Errors')
+fig = figure; hold on;
+set(fig,'Position',[100 100 900 600]);
+sgtitle('LKF, State Estimation Errors')
 subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x_hat(1,:)-x_star(1,:),'b-','LineWidth',2)
-plot(tvec,twoSigX,'k--')
-plot(tvec,-twoSigX,'k--')
+plot(tvec,x_hat(1,:)-x_star(1,:),'b-','LineWidth',1.25)
+plot(tvec,twoSigX,'k--','LineWidth',1)
+plot(tvec,-twoSigX,'k--','LineWidth',1)
 legend('xhat - xstar','+/- 2\sigma')
 ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,x_hat(2,:)-x_star(2,:),'b-','LineWidth',2)
-plot(tvec,twoSigXdot,'k--')
-plot(tvec,-twoSigXdot,'k--')
+plot(tvec,x_hat(2,:)-x_star(2,:),'b-','LineWidth',1.25)
+plot(tvec,twoSigXdot,'k--','LineWidth',1)
+plot(tvec,-twoSigXdot,'k--','LineWidth',1)
 ylabel('Xdot [km/s]')
 ylim([-1 1])
 subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,x_hat(3,:)-x_star(3,:),'b-','LineWidth',2)
-plot(tvec,twoSigY,'k--')
-plot(tvec,-twoSigY,'k--')
+plot(tvec,x_hat(3,:)-x_star(3,:),'b-','LineWidth',1.25)
+plot(tvec,twoSigY,'k--','LineWidth',1)
+plot(tvec,-twoSigY,'k--','LineWidth',1)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,x_hat(4,:)-x_star(4,:),'b-','LineWidth',2)
-plot(tvec,twoSigYdot,'k--')
-plot(tvec,-twoSigYdot,'k--')
+plot(tvec,x_hat(4,:)-x_star(4,:),'b-','LineWidth',1.25)
+plot(tvec,twoSigYdot,'k--','LineWidth',1)
+plot(tvec,-twoSigYdot,'k--','LineWidth',1)
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
 ylim([-1 1])
+saveas(fig,'Problem1_Error.png','png');
 
-figure; hold on
-sgtitle('Linearized Approx Perturbations vs Time')
-subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x_hat(1,:)-x_nom(1,:),'b-','LineWidth',2)
-ylabel('X [km]')
-subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,x_hat(2,:)-x_nom(2,:),'b-','LineWidth',2)
-ylabel('Xdot [km/s]')
-subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,x_hat(3,:)-x_nom(3,:),'b-','LineWidth',2)
-ylabel('Y [km]')
-subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,x_hat(4,:)-x_nom(4,:),'b-','LineWidth',2)
-ylabel('Ydot [km/s]'); xlabel('Time [s]')
+% figure; hold on
+% sgtitle('Linearized Approx Perturbations vs Time')
+% subplot(4,1,1); hold on; grid on; grid minor;
+% plot(tvec,x_hat(1,:)-x_perturb(1,:),'b-','LineWidth',2)
+% ylabel('X [km]')
+% subplot(4,1,2); hold on; grid on; grid minor;
+% plot(tvec,x_hat(2,:)-x_perturb(2,:),'b-','LineWidth',2)
+% ylabel('Xdot [km/s]')
+% subplot(4,1,3); hold on; grid on; grid minor;
+% plot(tvec,x_hat(3,:)-x_perturb(3,:),'b-','LineWidth',2)
+% ylabel('Y [km]')
+% subplot(4,1,4); hold on; grid on; grid minor;
+% plot(tvec,x_hat(4,:)-x_perturb(4,:),'b-','LineWidth',2)
+% ylabel('Ydot [km/s]'); xlabel('Time [s]')
 
 
 
