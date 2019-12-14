@@ -161,6 +161,9 @@ twoSigXdot(1401) = 2*sqrt(P_plus(2,2));
 twoSigY(1401) = 2*sqrt(P_plus(3,3));
 twoSigYdot(1401) = 2*sqrt(P_plus(4,4));
 
+
+%% Plot
+
 %plot NEES statistics
 epsNEESbar = mean(NEESamps,1);
 alphaNEES = 0.05; %significance level
@@ -239,23 +242,6 @@ saveas(fig,'Problem2_Noisy_Y.png','png');
 
 
 
-% figure; hold on;
-% sgtitle('LKF Predicted States')
-% subplot(4,1,1); hold on; grid on; grid minor;
-% plot(tvec,x_hat_plus(1,:),'b-','LineWidth',2)
-% ylabel('X [km]')
-% subplot(4,1,2); hold on; grid on; grid minor;
-% plot(tvec,x_hat_plus(2,:),'b-','LineWidth',2)
-% ylabel('Xdot [km/s]')
-% subplot(4,1,3); hold on; grid on; grid minor;
-% plot(tvec,x_hat_plus(3,:),'b-','LineWidth',2)
-% ylabel('Y [km]')
-% subplot(4,1,4); hold on; grid on; grid minor;
-% plot(tvec,x_hat_plus(4,:),'b-','LineWidth',2)
-% ylabel('Ydot [km/s]'); xlabel('Time [s]')
-
-
-
 fig = figure; hold on;
 sgtitle('EKF, State Estimation Errors')
 set(fig,'Position',[100 100 900 600]);
@@ -284,8 +270,35 @@ saveas(fig,'Problem2_Error.png','png');
 
 
 
-
-
+fig = figure; hold on;
+sgtitle('EKF, State Estimation Errors [Zoomed]')
+set(fig,'Position',[100 100 900 600]);
+subplot(4,1,1); hold on; grid on; grid minor;
+plot(tvec(1001:1031),x_hat_plus(1,1001:1031)-x_star(1,1001:1031),'b-','LineWidth',1.25)
+plot(tvec(1001:1031),twoSigX(1001:1031),'k--','LineWidth',1)
+plot(tvec(1001:1031),-twoSigX(1001:1031),'k--','LineWidth',1)
+xlim([tvec(1001) tvec(1031)])
+legend('xhat - xstar','+/- 2\sigma')
+ylabel('X [km]')
+subplot(4,1,2); hold on; grid on; grid minor;
+plot(tvec(1001:1031),x_hat_plus(2,1001:1031)-x_star(2,1001:1031),'b-','LineWidth',1.25)
+plot(tvec(1001:1031),twoSigXdot(1001:1031),'k--','LineWidth',1)
+plot(tvec(1001:1031),-twoSigXdot(1001:1031),'k--','LineWidth',1)
+xlim([tvec(1001) tvec(1031)])
+ylabel('Xdot [km/s]')
+subplot(4,1,3); hold on; grid on; grid minor;
+plot(tvec(1001:1031),x_hat_plus(3,1001:1031)-x_star(3,1001:1031),'b-','LineWidth',1.25)
+plot(tvec(1001:1031),twoSigY(1001:1031),'k--','LineWidth',1)
+plot(tvec(1001:1031),-twoSigY(1001:1031),'k--','LineWidth',1)
+xlim([tvec(1001) tvec(1031)])
+ylabel('Y [km]')
+subplot(4,1,4); hold on; grid on; grid minor;
+plot(tvec(1001:1031),x_hat_plus(4,1001:1031)-x_star(4,1001:1031),'b-','LineWidth',1.25)
+plot(tvec(1001:1031),twoSigYdot(1001:1031),'k--','LineWidth',1)
+plot(tvec(1001:1031),-twoSigYdot(1001:1031),'k--','LineWidth',1)
+xlim([tvec(1001) tvec(1031)])
+ylabel('Ydot [km/s]'); xlabel('Time [s]')
+saveas(fig,'Problem2_Error_Zoom.png','png');
 
 
 
