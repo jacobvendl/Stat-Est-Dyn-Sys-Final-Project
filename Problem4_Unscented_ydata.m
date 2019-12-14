@@ -16,7 +16,7 @@ wE = 2*pi/86400;         % rad/s
 dt = 10;                 % s
 P = 2*pi*sqrt(r0^3/mu);  % s
 Q = eye(4)*1e-9; Q(1,1)=0; Q(3,3)=0;
-R = eye(3)*1e-3; R(2,2)=.1;
+R = eye(3)*1e-2; R(2,2)=1;
 
 %set x0
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
@@ -56,7 +56,7 @@ for k=1:length(tvec)-1
     %call uky to perform transform on measurement
     [y_hat_minus,~,Pyy,devY]=uty(X1,Wm,Wc,m,R,tvec,k);
     
-    if isempty(devY)==1
+    if isempty(devY)==1 || isempty(y_hat_minus)==1
         x(:,k+1) = x_hat_minus;
         P_plus = P_minus;
     else 

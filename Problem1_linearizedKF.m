@@ -107,7 +107,7 @@ for s=1:Nsim
         wk = (Svq*qk);
         
         %add the noise to the state output
-        x_noisy(:,k) = x_true(:,k) + dt*Omega*wk;
+        x_noisy(:,k) = x_star(:,k) + dt*Omega*wk;
         
         %loop through the stations and simulate linearized measurements
         for i=1:12
@@ -142,6 +142,7 @@ for s=1:Nsim
     
     %Linearized KF
     Q_KF = eye(2)*3e-8;
+    R_KF = Rtrue;
     P_plus = 1e3*eye(4);
     
     dx_hat_plus = dx0;
@@ -158,14 +159,14 @@ for s=1:Nsim
         
         H = [];
         dy_KF = [];
-        R_KF = R;
+        R = R_KF;
         %loop through the stations to establish sensor measurement at k
         for i=1:12
             if ~isnan(rho(i,k+1))
                 dy_KF = vertcat(dy_KF, y_noisy(3*i-2:3*i,k+1)-y_star(3*i-2:3*i,k+1));
                 H = vertcat(H,H_variant(X(k+1),XD(k+1),Y(k+1),YD(k+1),Xs(i,k+1),XDs(i,k+1),Ys(i,k+1),YDs(i,k+1)));
                 if length(dy_KF) >= 4
-                    R_KF = blkdiag(R,R);
+                    R = blkdiag(R_KF,R_KF);
                 end
             end
         end
@@ -174,11 +175,11 @@ for s=1:Nsim
             H=zeros(3,4);
             dy_KF=zeros(3,1);
         else
-            Sk = H*P_minus*H' + R_KF;
-            K = P_minus*H'*inv(H*P_minus*H' + R_KF);
+            Sk = H*P_minus*H' + R;
+            K = P_minus*H'*inv(H*P_minus*H' + R);
         end
         %Joseph formulation
-        P_plus =(eye(4)-K*H)*P_minus*(eye(4)-K*H)' + K*R_KF*K';
+        P_plus =(eye(4)-K*H)*P_minus*(eye(4)-K*H)' + K*R*K';
         
         %update state prediction
         dx_hat_plus(:,k+1) = dx_hat_minus(:,k+1) + K*(dy_KF - H*dx_hat_minus(:,k+1));
@@ -222,7 +223,7 @@ ylim([0 10])
 saveas(fig,'Problem1_NEES.png','png');
 
 epsNISbar = mean(NISamps,1);
-alphaNIS = 0.05; %significance level
+alphaNIS = 0.03; %significance level
 Nny = Nsim*3; %N*p
 r1y = chi2inv(alphaNIS/2,Nny)./Nsim;
 r2y = chi2inv(1-alphaNIS/2,Nny)./Nsim;
@@ -300,24 +301,24 @@ fig = figure; hold on;
 set(fig,'Position',[100 100 900 600]);
 sgtitle('LKF, State Estimation Errors')
 subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x_hat(1,:)-x_true(1,:),'b-','LineWidth',1.25)
+plot(tvec,x_hat(1,:)-x_star(1,:),'b-','LineWidth',1.25)
 plot(tvec,twoSigX,'k--','LineWidth',1)
 plot(tvec,-twoSigX,'k--','LineWidth',1)
 legend('x_{hat} - x_{true}','+/- 2\sigma')
 ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,x_hat(2,:)-x_true(2,:),'b-','LineWidth',1.25)
+plot(tvec,x_hat(2,:)-x_star(2,:),'b-','LineWidth',1.25)
 plot(tvec,twoSigXdot,'k--','LineWidth',1)
 plot(tvec,-twoSigXdot,'k--','LineWidth',1)
 ylabel('Xdot [km/s]')
 ylim([-1 1])
 subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,x_hat(3,:)-x_true(3,:),'b-','LineWidth',1.25)
+plot(tvec,x_hat(3,:)-x_star(3,:),'b-','LineWidth',1.25)
 plot(tvec,twoSigY,'k--','LineWidth',1)
 plot(tvec,-twoSigY,'k--','LineWidth',1)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,x_hat(4,:)-x_true(4,:),'b-','LineWidth',1.25)
+plot(tvec,x_hat(4,:)-x_star(4,:),'b-','LineWidth',1.25)
 plot(tvec,twoSigYdot,'k--','LineWidth',1)
 plot(tvec,-twoSigYdot,'k--','LineWidth',1)
 ylabel('Ydot [km/s]'); xlabel('Time [s]')

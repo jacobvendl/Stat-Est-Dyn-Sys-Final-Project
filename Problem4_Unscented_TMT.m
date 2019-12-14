@@ -13,6 +13,7 @@ P = 2*pi*sqrt(r0^3/mu);  % s
 
 %load in data provided from Canvas
 load('orbitdeterm_finalproj_KFdata.mat')
+tvec = tvec(1:544);
 
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
 dx0 = [0, 0.01, 0, 0.01]';
@@ -34,7 +35,7 @@ opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
 [T, x_nom] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
 x_nom=x_nom';
 
-Nsim=50;
+Nsim=10;
 NEESamps = zeros(Nsim,length(tvec)-1);
 NISamps = zeros(Nsim,length(tvec)-1);
 
@@ -100,7 +101,7 @@ for n=1:Nsim
     
     x(:,1) = x0+dx0;
     P_plus = eye(4)*1e6;
-    Q_KF = eye(4)*1e-8; Q_KF(1,1)=0; Q_KF(3,3)=0;
+    Q_KF = eye(4)*1e-9; Q_KF(1,1)=0; Q_KF(3,3)=0;
     
     for k=1:length(tvec)-1
         %call function to create 9 sigma points
@@ -112,7 +113,7 @@ for n=1:Nsim
         %call uky to perform transform on measurement
         [y_hat_minus,~,Pyy,devY]=uty(X1,Wm,Wc,m,R,tvec,k);
         
-        if isempty(devY)==1
+        if isempty(devY)==1 || isempty(y_hat_minus)==1
             x(:,k+1) = x_hat_minus;
             P_plus = P_minus;
         else
@@ -176,7 +177,6 @@ ylabel('NEES Statistics, avg \epsilon_x')
 xlabel('time step k')
 title(sprintf('UKF NEES Estimation Results, N=%.0f',Nsim))
 legend('NEES @ time k','r_1 bound','r_2 bound')
-ylim([0 10])
 
 epsNISbar = mean(NISamps,1);
 alphaNIS = 0.05; %significance level
