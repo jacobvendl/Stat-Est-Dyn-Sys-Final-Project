@@ -276,66 +276,56 @@ set(fig,'Position',[100 100 900 600]);
 sgtitle('LKF, State Estimation Errors')
 subplot(4,1,1); hold on; grid on; grid minor;
 plot(tvec,x_hat(1,:)-x_star(1,:),'b-','LineWidth',1.25)
-plot(tvec,twoSigX,'k--','LineWidth',1)
-plot(tvec,-twoSigX,'k--','LineWidth',1)
+plot(tvec,(x_hat(1,:)-x_star(1,:))+twoSigX,'k--','LineWidth',1)
+plot(tvec,(x_hat(1,:)-x_star(1,:))-twoSigX,'k--','LineWidth',1)
 legend('x_{hat} - x_{true}','+/- 2\sigma')
 ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
 plot(tvec,x_hat(2,:)-x_star(2,:),'b-','LineWidth',1.25)
-plot(tvec,twoSigXdot,'k--','LineWidth',1)
-plot(tvec,-twoSigXdot,'k--','LineWidth',1)
+plot(tvec,(x_hat(2,:)-x_star(2,:))+twoSigXdot,'k--','LineWidth',1)
+plot(tvec,(x_hat(2,:)-x_star(2,:))-twoSigXdot,'k--','LineWidth',1)
 ylabel('Xdot [km/s]')
 ylim([-1 1])
 subplot(4,1,3); hold on; grid on; grid minor;
 plot(tvec,x_hat(3,:)-x_star(3,:),'b-','LineWidth',1.25)
-plot(tvec,twoSigY,'k--','LineWidth',1)
-plot(tvec,-twoSigY,'k--','LineWidth',1)
+plot(tvec,(x_hat(3,:)-x_star(3,:))+twoSigY,'k--','LineWidth',1)
+plot(tvec,(x_hat(3,:)-x_star(3,:))-twoSigY,'k--','LineWidth',1)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
 plot(tvec,x_hat(4,:)-x_star(4,:),'b-','LineWidth',1.25)
-plot(tvec,twoSigYdot,'k--','LineWidth',1)
-plot(tvec,-twoSigYdot,'k--','LineWidth',1)
+plot(tvec,(x_hat(4,:)-x_star(4,:))+twoSigYdot,'k--','LineWidth',1)
+plot(tvec,(x_hat(4,:)-x_star(4,:))-twoSigYdot,'k--','LineWidth',1)
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
 ylim([-1 1])
 saveas(fig,'Problem1_Error.png','png');
 
 
-% figure; hold on;
-% sgtitle(sprintf('Linearized KF plotted against Nonlinear Perturbed Simulation \n dx=[%.4fkm %.4fkm/s %.4fkm %.4fkm/s]',dx0(1),dx0(2),dx0(3),dx0(4)))
-% subplot(4,1,1); hold on; grid on; grid minor;
-% plot(tvec,x_star(1,:),'b-','LineWidth',2)
-% plot(tvec,x_hat(1,:),'r--','LineWidth',2)
-% legend('ode45 perturbed','xhat+')
-% ylabel('X [km]')
-% subplot(4,1,2); hold on; grid on; grid minor;
-% plot(tvec,x_star(2,:),'b-','LineWidth',2)
-% plot(tvec,x_hat(2,:),'r--','LineWidth',2)
-% ylabel('Xdot [km/s]')
-% subplot(4,1,3); hold on; grid on; grid minor;
-% plot(tvec,x_star(3,:),'b-','LineWidth',2)
-% plot(tvec,x_hat(3,:),'r--','LineWidth',2)
-% ylabel('Y [km]')
-% subplot(4,1,4); hold on; grid on; grid minor;
-% plot(tvec,x_star(4,:),'b-','LineWidth',2)
-% plot(tvec,x_hat(4,:),'r--','LineWidth',2)
-% ylabel('Ydot [km/s]'); xlabel('Time [s]')
+fig = figure; hold on;
+set(fig,'Position',[100 100 900 600]);
+sgtitle('LKF, State Estimation Errors [Zoomed]')
+subplot(4,1,1); hold on; grid on; grid minor;
+plot(tvec(1001:1031),x_hat(1,1001:1031)-x_star(1,1001:1031),'b-','LineWidth',1.25)
+plot(tvec(1001:1031),(x_hat(1,1001:1031)-x_star(1,1001:1031))+twoSigX(1001:1031),'k--','LineWidth',1)
+plot(tvec(1001:1031),(x_hat(1,1001:1031)-x_star(1,1001:1031))-twoSigX(1001:1031),'k--','LineWidth',1)
+legend('x_{hat} - x_{true}','+/- 2\sigma')
+ylabel('X [km]')
+subplot(4,1,2); hold on; grid on; grid minor;
+plot(tvec(1001:1031),x_hat(2,1001:1031)-x_star(2,1001:1031),'b-','LineWidth',1.25)
+plot(tvec(1001:1031),(x_hat(2,1001:1031)-x_star(2,1001:1031))+twoSigXdot(1001:1031),'k--','LineWidth',1)
+plot(tvec(1001:1031),(x_hat(2,1001:1031)-x_star(2,1001:1031))-twoSigXdot(1001:1031),'k--','LineWidth',1)
+ylabel('Xdot [km/s]')
+subplot(4,1,3); hold on; grid on; grid minor;
+plot(tvec(1001:1031),x_hat(3,1001:1031)-x_star(3,1001:1031),'b-','LineWidth',1.25)
+plot(tvec(1001:1031),(x_hat(3,1001:1031)-x_star(3,1001:1031))+twoSigY(1001:1031),'k--','LineWidth',1)
+plot(tvec(1001:1031),(x_hat(3,1001:1031)-x_star(3,1001:1031))-twoSigY(1001:1031),'k--','LineWidth',1)
+ylabel('Y [km]')
+subplot(4,1,4); hold on; grid on; grid minor;
+plot(tvec(1001:1031),x_hat(4,1001:1031)-x_star(4,1001:1031),'b-','LineWidth',1.25)
+plot(tvec(1001:1031),(x_hat(4,1001:1031)-x_star(4,1001:1031))+twoSigYdot(1001:1031),'k--','LineWidth',1)
+plot(tvec(1001:1031),(x_hat(4,1001:1031)-x_star(4,1001:1031))-twoSigYdot(1001:1031),'k--','LineWidth',1)
+ylabel('Ydot [km/s]'); xlabel('Time [s]')
+saveas(fig,'Problem1_Error_Zoom.png','png');
 
-
-
-% figure; hold on
-% sgtitle('Linearized Approx Perturbations vs Time')
-% subplot(4,1,1); hold on; grid on; grid minor;
-% plot(tvec,x_hat(1,:)-x_perturb(1,:),'b-','LineWidth',2)
-% ylabel('X [km]')
-% subplot(4,1,2); hold on; grid on; grid minor;
-% plot(tvec,x_hat(2,:)-x_perturb(2,:),'b-','LineWidth',2)
-% ylabel('Xdot [km/s]')
-% subplot(4,1,3); hold on; grid on; grid minor;
-% plot(tvec,x_hat(3,:)-x_perturb(3,:),'b-','LineWidth',2)
-% ylabel('Y [km]')
-% subplot(4,1,4); hold on; grid on; grid minor;
-% plot(tvec,x_hat(4,:)-x_perturb(4,:),'b-','LineWidth',2)
-% ylabel('Ydot [km/s]'); xlabel('Time [s]')
 
 
 
