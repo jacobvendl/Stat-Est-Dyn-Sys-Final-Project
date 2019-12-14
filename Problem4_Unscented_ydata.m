@@ -20,7 +20,7 @@ R = eye(3)*1e-2; R(2,2)=1;
 
 %set x0
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
-dx0 = [0, 0.01, 0, 0.01]';
+dx0 = [0, 0.075, 0, -0.021]';
 
 s0=x0+dx0;
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
@@ -31,7 +31,7 @@ opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
 [T, x_nom] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
 x_nom=x_nom';
 
-x(:,1) = x0+dx0;
+x(:,1) = x0;
 P_plus = eye(4)*1e6;
 
 %set UKF inputs
@@ -111,26 +111,20 @@ plot(tvec,x(4,:),'b-','LineWidth',2)
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
 ylim([-10 10])
 
-%create ode45 simulation to compare against
-s0 = x0 + dx0;
-opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
-[T, x_perturbed] = ode45(@(t,s)orbit_prop_func(t,s),tvec,s0,opts);
-x_perturbed=x_perturbed';
-
 figure; hold on;
 sgtitle('UKF State Estimation Errors')
 subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x(1,:)-x_perturbed(1,:),'b-','LineWidth',2)
+plot(tvec,x(1,:)-x_star(1,:),'b-','LineWidth',2)
 ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,x(2,:)-x_perturbed(2,:),'b-','LineWidth',2)
+plot(tvec,x(2,:)-x_star(2,:),'b-','LineWidth',2)
 ylabel('Xdot [km/s]')
 ylim([-1.5 1.5])
 subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,x(3,:)-x_perturbed(3,:),'b-','LineWidth',2)
+plot(tvec,x(3,:)-x_star(3,:),'b-','LineWidth',2)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,x(4,:)-x_perturbed(4,:),'b-','LineWidth',2)
+plot(tvec,x(4,:)-x_star(4,:),'b-','LineWidth',2)
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
 ylim([-1.5 1.5])
 
