@@ -370,7 +370,6 @@ H(3,3) = ((X-Xs)/((X-Xs)^2+(Y-Ys)^2));
 H(3,4) = 0;
 end
 
-
 function [F Omega] = F_Omega_variant(X,Y)
 mu = 398600;        % km^3/s^2
 r0_nom = 6678;          % km
