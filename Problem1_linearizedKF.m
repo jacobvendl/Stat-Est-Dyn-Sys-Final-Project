@@ -3,12 +3,11 @@
 
 clear all; close all; clc
 
-T = 14000; % largest time value in given data
-
 %this script handles the linearized KF
 
 %load in data provided from Canvas
 load('orbitdeterm_finalproj_KFdata.mat')
+tvec=tvec(1:544);
 
 %set problem inputs
 mu = 398600;             % km^3/s^2
@@ -20,7 +19,7 @@ P = 2*pi*sqrt(r0^3/mu);  % s
 
 %STEP ONE  - generate input to truth model
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
-dx0 = [0, 0.01, 0, -0.01]';
+dx0 = [0, 0.001, 0, -0.001]';
 
 %STEP TWO - simulate perturbed ground truth state using ode45
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
@@ -32,7 +31,7 @@ x_star=x_star';
 x_nom=x_nom';
 
 %STEP THREE = simulate ground truth measurements using ode45 result
-X=x_star(1,:); Y=x_star(3,:); XD=x_star(2,:); YD=x_star(4,:);
+X=x_nom(1,:); Y=x_nom(3,:); XD=x_nom(2,:); YD=x_nom(4,:);
 Xs = zeros(12,length(T));
 Ys = zeros(12,length(T));
 XDs = zeros(12,length(T));
@@ -141,7 +140,7 @@ for s=1:Nsim
     end
     
     %Linearized KF
-    Q_KF = eye(2)*3e-8;
+    Q_KF = eye(2)*1e-6;
     R_KF = Rtrue;
     P_plus = 1e3*eye(4);
     
@@ -219,7 +218,7 @@ ylabel('NEES Statistics, avg \epsilon_x')
 xlabel('time step k')
 title(sprintf('LKF, NEES Estimation Results, N=%.0f',Nsim))
 legend('NEES @ time k','r_1 bound','r_2 bound')
-ylim([0 10])
+%ylim([0 10])
 saveas(fig,'Problem1_NEES.png','png');
 
 epsNISbar = mean(NISamps,1);
@@ -236,7 +235,7 @@ ylabel('NIS Statistics, avg \epsilon_y')
 xlabel('time step k')
 title(sprintf('LKF, NIS Estimation Results, N=%.0f',Nsim))
 legend('NIS @ time k','r_1 bound','r_2 bound')
-ylim([0 10])
+%ylim([0 10])
 saveas(fig,'Problem1_NIS.png','png');
 
 %save out one of the simulated states for plotting purposes
