@@ -32,7 +32,7 @@ x_star=x_star';
 x_nom=x_nom';
 
 %STEP THREE = simulate ground truth measurements using ode45 result
-X=x_nom(1,:); Y=x_nom(3,:); XD=x_nom(2,:); YD=x_nom(4,:);
+X=x_star(1,:); Y=x_star(3,:); XD=x_star(2,:); YD=x_star(4,:);
 Xs = zeros(12,length(T));
 Ys = zeros(12,length(T));
 XDs = zeros(12,length(T));
