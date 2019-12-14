@@ -28,11 +28,11 @@ opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
 x_star=x_star';
 
 %make perturbed state for comparison
-[T, x_true] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
-x_true=x_true';
+[T, x_nom] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
+x_nom=x_nom';
 
 %STEP THREE = simulate ground truth measurements using ode45 result
-X=x_star(1,:); Y=x_star(3,:); XD=x_star(2,:); YD=x_star(4,:);
+X=x_nom(1,:); Y=x_nom(3,:); XD=x_nom(2,:); YD=x_nom(4,:);
 Xs = zeros(12,length(T));
 Ys = zeros(12,length(T));
 XDs = zeros(12,length(T));
@@ -40,7 +40,7 @@ YDs = zeros(12,length(T));
 rho = zeros(12,length(T));
 rhoDot = zeros(12,length(T));
 phi = zeros(12,length(T));
-y_star = zeros(36,length(T));
+y_nom = zeros(36,length(T));
 %now simulate the measurements for all time
 for i=1:12 %stations
     theta = (i-1)*pi/6;
@@ -75,9 +75,9 @@ for i=1:12 %stations
             rhoDot(i,t) = nan;
             phi(i,t)=nan;
         end
-        y_star(3*i-2,t) = rho(i,t);
-        y_star(3*i-1,t) = rhoDot(i,t);
-        y_star(3*i,t) = phi(i,t);
+        y_nom(3*i-2,t) = rho(i,t);
+        y_nom(3*i-1,t) = rhoDot(i,t);
+        y_nom(3*i,t) = phi(i,t);
     end
 end
 
@@ -163,7 +163,7 @@ for s=1:Nsim
         %loop through the stations to establish sensor measurement at k
         for i=1:12
             if ~isnan(rho(i,k+1))
-                dy_KF = vertcat(dy_KF, y_noisy(3*i-2:3*i,k+1)-y_star(3*i-2:3*i,k+1));
+                dy_KF = vertcat(dy_KF, y_noisy(3*i-2:3*i,k+1)-y_nom(3*i-2:3*i,k+1));
                 H = vertcat(H,H_variant(X(k+1),XD(k+1),Y(k+1),YD(k+1),Xs(i,k+1),XDs(i,k+1),Ys(i,k+1),YDs(i,k+1)));
                 if length(dy_KF) >= 4
                     R = blkdiag(R_KF,R_KF);
