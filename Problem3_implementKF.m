@@ -21,11 +21,11 @@ dx0 = [0, 0.01, 0, 0.01]';
 
 %generate truth reference trajectory, unperturbed
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
-[T, x_star] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
-x_star=x_star';
+[T, x_nom] = ode45(@(t,s)orbit_prop_func(t,s),tvec,x0,opts);
+x_nom=x_nom';
 
 %generate truth data y_star
-X=x_star(1,:); Y=x_star(3,:); XD=x_star(2,:); YD=x_star(4,:);
+X=x_nom(1,:); Y=x_nom(3,:); XD=x_nom(2,:); YD=x_nom(4,:);
 Xs = zeros(12,length(T));
 Ys = zeros(12,length(T));
 XDs = zeros(12,length(T));
@@ -138,7 +138,7 @@ for k=1:length(tvec)-1
     
     %update state prediction
     dx_hat_plus(:,k+1) = dx_hat_minus(:,k+1) + K*(innov - H*dx_hat_minus(:,k+1));
-    x_hat(:,k) = x_star(:,k) + dx_hat_plus(:,k);
+    x_hat(:,k) = x_nom(:,k) + dx_hat_plus(:,k);
     
     %save off covariance info
     twoSigX(k) = 2*sqrt(P_plus(1,1));
@@ -146,7 +146,7 @@ for k=1:length(tvec)-1
     twoSigY(k) = 2*sqrt(P_plus(3,3));
     twoSigYdot(k) = 2*sqrt(P_plus(4,4));
 end
-x_hat(:,1401) = x_star(:,1401) + dx_hat_plus(:,1401);
+x_hat(:,1401) = x_nom(:,1401) + dx_hat_plus(:,1401);
 twoSigX(1401) = 2*sqrt(P_plus(1,1));
 twoSigXdot(1401) = 2*sqrt(P_plus(2,2));
 twoSigY(1401) = 2*sqrt(P_plus(3,3));
@@ -183,25 +183,25 @@ fig = figure; hold on;
 set(fig,'Position',[100 100 900 600]);
 sgtitle('LKF, Deviation from Nominal')
 subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x_hat(1,:)-x_star(1,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(1,:)-x_star(1,:))+twoSigX,'k--','LineWidth',1)
-plot(tvec,(x_hat(1,:)-x_star(1,:))-twoSigX,'k--','LineWidth',1)
+plot(tvec,x_hat(1,:)-x_nom(1,:),'b-','LineWidth',1.25)
+plot(tvec,(x_hat(1,:)-x_nom(1,:))+twoSigX,'k--','LineWidth',1)
+plot(tvec,(x_hat(1,:)-x_nom(1,:))-twoSigX,'k--','LineWidth',1)
 legend('x_{hat}(estimate) - x*(nominal)','+/- 2\sigma')
 ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,x_hat(2,:)-x_star(2,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(2,:)-x_star(2,:))+twoSigXdot,'k--','LineWidth',1)
-plot(tvec,(x_hat(2,:)-x_star(2,:))-twoSigXdot,'k--','LineWidth',1)
+plot(tvec,x_hat(2,:)-x_nom(2,:),'b-','LineWidth',1.25)
+plot(tvec,(x_hat(2,:)-x_nom(2,:))+twoSigXdot,'k--','LineWidth',1)
+plot(tvec,(x_hat(2,:)-x_nom(2,:))-twoSigXdot,'k--','LineWidth',1)
 ylabel('Xdot [km/s]')
 subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,x_hat(3,:)-x_star(3,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(3,:)-x_star(3,:))+twoSigY,'k--','LineWidth',1)
-plot(tvec,(x_hat(3,:)-x_star(3,:))-twoSigY,'k--','LineWidth',1)
+plot(tvec,x_hat(3,:)-x_nom(3,:),'b-','LineWidth',1.25)
+plot(tvec,(x_hat(3,:)-x_nom(3,:))+twoSigY,'k--','LineWidth',1)
+plot(tvec,(x_hat(3,:)-x_nom(3,:))-twoSigY,'k--','LineWidth',1)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,x_hat(4,:)-x_star(4,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(4,:)-x_star(4,:))+twoSigYdot,'k--','LineWidth',1)
-plot(tvec,(x_hat(4,:)-x_star(4,:))-twoSigYdot,'k--','LineWidth',1)
+plot(tvec,x_hat(4,:)-x_nom(4,:),'b-','LineWidth',1.25)
+plot(tvec,(x_hat(4,:)-x_nom(4,:))+twoSigYdot,'k--','LineWidth',1)
+plot(tvec,(x_hat(4,:)-x_nom(4,:))-twoSigYdot,'k--','LineWidth',1)
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
 saveas(fig,'Problem3_LKF_Deviation.png','png');
 
@@ -274,7 +274,7 @@ for k=1:length(tvec)-1
     twoSigY(k) = 2*sqrt(P_plus(3,3));
     twoSigYdot(k) = 2*sqrt(P_plus(4,4));
 end
-x_hat(:,1401) = x_star(:,1401) + dx_hat_plus(:,1401);
+x_hat(:,1401) = x_nom(:,1401) + dx_hat_plus(:,1401);
 twoSigX(1401) = 2*sqrt(P_plus(1,1));
 twoSigXdot(1401) = 2*sqrt(P_plus(2,2));
 twoSigY(1401) = 2*sqrt(P_plus(3,3));
@@ -311,25 +311,25 @@ fig = figure; hold on;
 set(fig,'Position',[100 100 900 600]);
 sgtitle('EKF, Deviation from Nominal')
 subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x_hat(1,:)-x_star(1,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(1,:)-x_star(1,:))+twoSigX,'k--','LineWidth',1)
-plot(tvec,(x_hat(1,:)-x_star(1,:))-twoSigX,'k--','LineWidth',1)
+plot(tvec,x_hat(1,:)-x_nom(1,:),'b-','LineWidth',1.25)
+plot(tvec,(x_hat(1,:)-x_nom(1,:))+twoSigX,'k--','LineWidth',1)
+plot(tvec,(x_hat(1,:)-x_nom(1,:))-twoSigX,'k--','LineWidth',1)
 legend('x_{hat}(estimate) - x*(nominal)','+/- 2\sigma')
 ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,x_hat(2,:)-x_star(2,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(2,:)-x_star(2,:))+twoSigXdot,'k--','LineWidth',1)
-plot(tvec,(x_hat(2,:)-x_star(2,:))-twoSigXdot,'k--','LineWidth',1)
+plot(tvec,x_hat(2,:)-x_nom(2,:),'b-','LineWidth',1.25)
+plot(tvec,(x_hat(2,:)-x_nom(2,:))+twoSigXdot,'k--','LineWidth',1)
+plot(tvec,(x_hat(2,:)-x_nom(2,:))-twoSigXdot,'k--','LineWidth',1)
 ylabel('Xdot [km/s]')
 subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,x_hat(3,:)-x_star(3,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(3,:)-x_star(3,:))+twoSigY,'k--','LineWidth',1)
-plot(tvec,(x_hat(3,:)-x_star(3,:))-twoSigY,'k--','LineWidth',1)
+plot(tvec,x_hat(3,:)-x_nom(3,:),'b-','LineWidth',1.25)
+plot(tvec,(x_hat(3,:)-x_nom(3,:))+twoSigY,'k--','LineWidth',1)
+plot(tvec,(x_hat(3,:)-x_nom(3,:))-twoSigY,'k--','LineWidth',1)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,x_hat(4,:)-x_star(4,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(4,:)-x_star(4,:))+twoSigYdot,'k--','LineWidth',1)
-plot(tvec,(x_hat(4,:)-x_star(4,:))-twoSigYdot,'k--','LineWidth',1)
+plot(tvec,x_hat(4,:)-x_nom(4,:),'b-','LineWidth',1.25)
+plot(tvec,(x_hat(4,:)-x_nom(4,:))+twoSigYdot,'k--','LineWidth',1)
+plot(tvec,(x_hat(4,:)-x_nom(4,:))-twoSigYdot,'k--','LineWidth',1)
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
 saveas(fig,'Problem3_EKF_Deviation.png','png');
 
