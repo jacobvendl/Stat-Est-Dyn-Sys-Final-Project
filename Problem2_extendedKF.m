@@ -196,7 +196,7 @@ xlabel('time step k')
 title(sprintf('EKF, NIS Estimation Results, N=%.0f',Nsim))
 legend('NIS @ time k','r_1 bound','r_2 bound')
 ylim([0 10])
-saveas(fig,'Problem1_NIS.png','png');
+saveas(fig,'Problem2_NIS.png','png');
 
 
 
