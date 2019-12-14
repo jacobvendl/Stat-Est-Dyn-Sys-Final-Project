@@ -7,7 +7,6 @@ clear all; close all; clc
 
 %load in data provided from Canvas
 load('orbitdeterm_finalproj_KFdata.mat')
-tvec=tvec(1:544);
 
 %set problem inputs
 mu = 398600;             % km^3/s^2
@@ -140,9 +139,9 @@ for s=1:Nsim
     end
     
     %Linearized KF
-    Q_KF = eye(2)*1e-6;
+    Q_KF = eye(2)*1e-8;
     R_KF = Rtrue;
-    P_plus = 1e3*eye(4);
+    P_plus = 1e6*eye(4);
     
     dx_hat_plus = dx0;
     dx_hat_minus = zeros(4,length(tvec));
@@ -182,7 +181,7 @@ for s=1:Nsim
         
         %update state prediction
         dx_hat_plus(:,k+1) = dx_hat_minus(:,k+1) + K*(dy_KF - H*dx_hat_minus(:,k+1));
-        x_hat(:,k) = x_star(:,k) + dx_hat_plus(:,k);
+        x_hat(:,k) = x_nom(:,k) + dx_hat_plus(:,k);
         
         %save off covariance info
         twoSigX(k) = 2*sqrt(P_plus(1,1));
@@ -218,7 +217,7 @@ ylabel('NEES Statistics, avg \epsilon_x')
 xlabel('time step k')
 title(sprintf('LKF, NEES Estimation Results, N=%.0f',Nsim))
 legend('NEES @ time k','r_1 bound','r_2 bound')
-%ylim([0 10])
+ylim([0 10])
 saveas(fig,'Problem1_NEES.png','png');
 
 epsNISbar = mean(NISamps,1);
