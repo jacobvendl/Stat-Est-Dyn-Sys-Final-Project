@@ -1,5 +1,6 @@
 %Jake Vendl and Jack Toland
 
+
 close all; clear all; clc
 
 %set problem inputs
@@ -299,8 +300,6 @@ plot(tvec(1001:1031),(x_hat_plus(4,1001:1031)-x_star(4,1001:1031))-twoSigYdot(10
 xlim([tvec(1001) tvec(1031)])
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
 saveas(fig,'Problem2_Error_Zoom.png','png');
-
-
 
 
 function [ ds ] = orbit_prop_func(t,s)

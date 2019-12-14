@@ -21,7 +21,7 @@ P = 2*pi*sqrt(r0^3/mu);  % s
 
 %STEP ONE  - generate input to truth model
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
-dx0 = [0, 0.001, 0, -0.001]';
+dx0 = [0, 0.0001, 0, -0.0001]';
 
 %STEP TWO - simulate perturbed ground truth state using ode45
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
@@ -56,26 +56,9 @@ for i=1:12 %stations
         
         %peform check at given time to see if s/c is visible
         phi(i,t) = atan2((Y(t)-Ys(i,t)),(X(t)-Xs(i,t)));
-        thetaCheck = atan2(Ys(i,t),Xs(i,t));
-        if (thetaCheck-pi/2) > (thetaCheck+pi/2)
-            upperBound = thetaCheck-pi/2;
-            lowerBound = thetaCheck+pi/2;
-        else
-            upperBound = thetaCheck+pi/2;
-            lowerBound = thetaCheck-pi/2;
-        end
-        if (lowerBound <= phi(i,t) && phi(i,t) <= upperBound) ...
-                || (lowerBound-2*pi <= phi(i,t) && phi(i,t)<=upperBound-2*pi)... %accomodate phi wrapping
-                || (lowerBound+2*pi <= phi(i,t) && phi(i,t)<=upperBound+2*pi)
-            
-            rho(i,t) = sqrt((X(t)-Xs(i,t))^2 + (Y(t)-Ys(i,t))^2);
-            rhoDot(i,t) = ((X(t)-Xs(i,t))*(XD(t)-XDs(i,t)) + (Y(t)-Ys(i,t))*(YD(t)-YDs(i,t)))...
-                / rho(i,t);
-        else
-            rho(i,t) = nan;
-            rhoDot(i,t) = nan;
-            phi(i,t)=nan;
-        end
+        rho(i,t) = sqrt((X(t)-Xs(i,t))^2 + (Y(t)-Ys(i,t))^2);
+        rhoDot(i,t) = ((X(t)-Xs(i,t))*(XD(t)-XDs(i,t)) + (Y(t)-Ys(i,t))*(YD(t)-YDs(i,t)))...
+            / rho(i,t);
         y_nom(3*i-2,t) = rho(i,t);
         y_nom(3*i-1,t) = rhoDot(i,t);
         y_nom(3*i,t) = phi(i,t);
@@ -135,6 +118,7 @@ for s=1:Nsim
                 rhoDot_noisy(i,k) = nan;
                 phi_noisy(i,k)=nan;
             end
+            
             y_noisy(3*i-2,k) = rho_noisy(i,k) + vk(1);
             y_noisy(3*i-1,k) = rhoDot_noisy(i,k) + vk(2);
             y_noisy(3*i,k) = phi_noisy(i,k) + vk(3);
@@ -142,9 +126,9 @@ for s=1:Nsim
     end
     
     %Linearized KF
-    Q_KF = eye(2)*1e-8;
+    Q_KF = eye(2)*2.5e-8;
     R_KF = Rtrue;
-    P_plus = 1e6*eye(4);
+    P_plus = 1e3*eye(4);
     
     dx_hat_plus = dx0;
     dx_hat_minus = zeros(4,length(tvec));
@@ -163,7 +147,7 @@ for s=1:Nsim
         R = R_KF;
         %loop through the stations to establish sensor measurement at k
         for i=1:12
-            if ~isnan(rho(i,k+1))
+            if ~isnan(y_noisy(3*i,k+1))
                 dy_KF = vertcat(dy_KF, y_noisy(3*i-2:3*i,k+1)-y_nom(3*i-2:3*i,k+1));
                 H = vertcat(H,H_variant(X(k+1),XD(k+1),Y(k+1),YD(k+1),Xs(i,k+1),XDs(i,k+1),Ys(i,k+1),YDs(i,k+1)));
                 if length(dy_KF) >= 4
@@ -194,7 +178,7 @@ for s=1:Nsim
         
         %compute NEES and NIS statistics
         NEESsshist(k) = (x_noisy(:,k)-x_hat(:,k))'*inv(P_plus)*(x_noisy(:,k)-x_hat(:,k));
-        NISsshist(k) = dy_KF'*inv(Sk)*dy_KF; %/ (length(dy_KF)/3);
+        NISsshist(k) = dy_KF'*inv(Sk)*dy_KF / (length(dy_KF)/3);
     end
     NEESamps(s,:) = NEESsshist;
     NISamps(s,:) = NISsshist;
@@ -237,7 +221,7 @@ ylabel('NIS Statistics, avg \epsilon_y')
 xlabel('time step k')
 title(sprintf('LKF, NIS Estimation Results, N=%.0f',Nsim))
 legend('NIS @ time k','r_1 bound','r_2 bound')
-%ylim([0 10])
+ylim([0 10])
 saveas(fig,'Problem1_NIS.png','png');
 
 %save out one of the simulated states for plotting purposes

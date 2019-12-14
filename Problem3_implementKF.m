@@ -17,7 +17,7 @@ dt = 10;                 % s
 P = 2*pi*sqrt(r0^3/mu);  % s
 
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
-dx0 = [0, 0.01, 0, 0.01]';
+dx0 = [0, 0.0001, 0, 0.0001]';
 
 %generate truth reference trajectory, unperturbed
 opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
@@ -179,32 +179,6 @@ xlabel('time [s]')
 ylabel('YDot [km/s]')
 saveas(fig,'Problem3_LKF_Full.png','png');
 
-fig = figure; hold on;
-set(fig,'Position',[100 100 900 600]);
-sgtitle('LKF, Deviation from Nominal')
-subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x_hat(1,:)-x_nom(1,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(1,:)-x_nom(1,:))+twoSigX,'k--','LineWidth',1)
-plot(tvec,(x_hat(1,:)-x_nom(1,:))-twoSigX,'k--','LineWidth',1)
-legend('x_{hat}(estimate) - x*(nominal)','+/- 2\sigma')
-ylabel('X [km]')
-subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,x_hat(2,:)-x_nom(2,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(2,:)-x_nom(2,:))+twoSigXdot,'k--','LineWidth',1)
-plot(tvec,(x_hat(2,:)-x_nom(2,:))-twoSigXdot,'k--','LineWidth',1)
-ylabel('Xdot [km/s]')
-subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,x_hat(3,:)-x_nom(3,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(3,:)-x_nom(3,:))+twoSigY,'k--','LineWidth',1)
-plot(tvec,(x_hat(3,:)-x_nom(3,:))-twoSigY,'k--','LineWidth',1)
-ylabel('Y [km]')
-subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,x_hat(4,:)-x_nom(4,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(4,:)-x_nom(4,:))+twoSigYdot,'k--','LineWidth',1)
-plot(tvec,(x_hat(4,:)-x_nom(4,:))-twoSigYdot,'k--','LineWidth',1)
-ylabel('Ydot [km/s]'); xlabel('Time [s]')
-saveas(fig,'Problem3_LKF_Deviation.png','png');
-
 
 %%
 clear x_hat P_plus twoSigX twoSigXdot twoSigY twoSigYdot 
@@ -307,31 +281,6 @@ xlabel('time [s]')
 ylabel('YDot [km/s]')
 saveas(fig,'Problem3_EKF_Full.png','png');
 
-fig = figure; hold on;
-set(fig,'Position',[100 100 900 600]);
-sgtitle('EKF, Deviation from Nominal')
-subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x_hat(1,:)-x_nom(1,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(1,:)-x_nom(1,:))+twoSigX,'k--','LineWidth',1)
-plot(tvec,(x_hat(1,:)-x_nom(1,:))-twoSigX,'k--','LineWidth',1)
-legend('x_{hat}(estimate) - x*(nominal)','+/- 2\sigma')
-ylabel('X [km]')
-subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,x_hat(2,:)-x_nom(2,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(2,:)-x_nom(2,:))+twoSigXdot,'k--','LineWidth',1)
-plot(tvec,(x_hat(2,:)-x_nom(2,:))-twoSigXdot,'k--','LineWidth',1)
-ylabel('Xdot [km/s]')
-subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,x_hat(3,:)-x_nom(3,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(3,:)-x_nom(3,:))+twoSigY,'k--','LineWidth',1)
-plot(tvec,(x_hat(3,:)-x_nom(3,:))-twoSigY,'k--','LineWidth',1)
-ylabel('Y [km]')
-subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,x_hat(4,:)-x_nom(4,:),'b-','LineWidth',1.25)
-plot(tvec,(x_hat(4,:)-x_nom(4,:))+twoSigYdot,'k--','LineWidth',1)
-plot(tvec,(x_hat(4,:)-x_nom(4,:))-twoSigYdot,'k--','LineWidth',1)
-ylabel('Ydot [km/s]'); xlabel('Time [s]')
-saveas(fig,'Problem3_EKF_Deviation.png','png');
 
 %propagation function
 function [ ds ] = orbit_prop_func(t,s)
