@@ -126,7 +126,7 @@ for s=1:Nsim
     end
     
     %Linearized KF
-    Q_KF = eye(2)*2.5e-8;
+    Q_KF = eye(2)*1e-8;
     R_KF = Rtrue;
     P_plus = 1e3*eye(4);
     
@@ -138,7 +138,7 @@ for s=1:Nsim
     for k=1:length(tvec)-1
         
         %KF steps now that we have noisy data to work with
-        [F, Omega] = F_Omega_variant(X(k),Y(k));
+        [F, ~] = F_Omega_variant(X(k),Y(k));
         dx_hat_minus(:,k+1) = F*dx_hat_plus(:,k);
         P_minus = F*P_plus*F' + Omega*Q_KF*Omega';
         
@@ -153,6 +153,9 @@ for s=1:Nsim
                 if length(dy_KF) >= 4
                     R = blkdiag(R_KF,R_KF);
                 end
+                rho_plot(k) = dy_KF(1);
+                rhoDot_plot(k) = dy_KF(2);
+                
             end
         end
         if isempty(H)==1
@@ -188,6 +191,13 @@ twoSigX(1401) = 2*sqrt(P_plus(1,1));
 twoSigXdot(1401) = 2*sqrt(P_plus(2,2));
 twoSigY(1401) = 2*sqrt(P_plus(3,3));
 twoSigYdot(1401) = 2*sqrt(P_plus(4,4));
+x_hat(:,1401) = x_nom(:,1401) + dx_hat_plus(:,1401);
+
+figure; hold on; grid on; grid minor
+plot(tvec(1:1400),rho_plot,'b-','LineWidth',2)
+xlabel('Time [s]'); ylabel('\delta\rho [km]')
+title('difference in \rho between y_{k+1} and y^*_{k+1}')
+
 
 %plot NEES statistics
 epsNEESbar = mean(NEESamps,1);
@@ -201,7 +211,7 @@ plot(epsNEESbar,'ro','MarkerSize',6,'LineWidth',1.5)
 plot(r1x*ones(size(epsNEESbar)),'k--','LineWidth',2)
 plot(r2x*ones(size(epsNEESbar)),'k--','LineWidth',2)
 ylabel('NEES Statistics, avg \epsilon_x')
-xlabel('time step k')
+xlabel('k')
 title(sprintf('LKF, NEES Estimation Results, N=%.0f',Nsim))
 legend('NEES @ time k','r_1 bound','r_2 bound')
 ylim([0 10])
@@ -218,14 +228,11 @@ plot(epsNISbar,'bo','MarkerSize',6,'LineWidth',1.5)
 plot(r1y*ones(size(epsNISbar)),'k--','LineWidth',2)
 plot(r2y*ones(size(epsNISbar)),'k--','LineWidth',2)
 ylabel('NIS Statistics, avg \epsilon_y')
-xlabel('time step k')
+xlabel('k')
 title(sprintf('LKF, NIS Estimation Results, N=%.0f',Nsim))
 legend('NIS @ time k','r_1 bound','r_2 bound')
 ylim([0 10])
 saveas(fig,'Problem1_NIS.png','png');
-
-%save out one of the simulated states for plotting purposes
-x_hat = x_star + dx_hat_plus;
 
 %total states vs time for noisy linearized dynamics model
 fig = figure; hold on;
