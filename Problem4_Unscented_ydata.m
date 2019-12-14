@@ -94,7 +94,8 @@ for k=1:length(tvec)-1
 end
 
 %make plots
-figure; hold on; 
+fig = figure; hold on; 
+set(fig,'Position',[100 100 900 600]);
 sgtitle('UKF Predicted States')
 subplot(4,1,1); hold on; grid on; grid minor;
 plot(tvec,x(1,:),'b-','LineWidth',2)
@@ -110,23 +111,66 @@ subplot(4,1,4); hold on; grid on; grid minor;
 plot(tvec,x(4,:),'b-','LineWidth',2)
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
 ylim([-10 10])
+saveas(fig,'Problem4_Predicted.png','png');
 
-figure; hold on;
-sgtitle('UKF State Estimation Errors')
+
+fig = figure; hold on;
+sgtitle('UKF, State Estimation Errors')
+set(fig,'Position',[100 100 900 600]);
 subplot(4,1,1); hold on; grid on; grid minor;
-plot(tvec,x(1,:)-x_star(1,:),'b-','LineWidth',2)
+plot(tvec,x(1,:)-x_star(1,:),'b-','LineWidth',1.25)
+plot(tvec,(x(1,:)-x_star(1,:))+twoSigX,'k--','LineWidth',1)
+plot(tvec,(x(1,:)-x_star(1,:))-twoSigX,'k--','LineWidth',1)
+legend('xhat - xstar','+/- 2\sigma')
 ylabel('X [km]')
 subplot(4,1,2); hold on; grid on; grid minor;
-plot(tvec,x(2,:)-x_star(2,:),'b-','LineWidth',2)
+plot(tvec,x(2,:)-x_star(2,:),'b-','LineWidth',1.25)
+plot(tvec,(x(2,:)-x_star(2,:))+twoSigXdot,'k--','LineWidth',1)
+plot(tvec,(x(2,:)-x_star(2,:))-twoSigXdot,'k--','LineWidth',1)
 ylabel('Xdot [km/s]')
-ylim([-1.5 1.5])
 subplot(4,1,3); hold on; grid on; grid minor;
-plot(tvec,x(3,:)-x_star(3,:),'b-','LineWidth',2)
+plot(tvec,x(3,:)-x_star(3,:),'b-','LineWidth',1.25)
+plot(tvec,(x(3,:)-x_star(3,:))+twoSigY,'k--','LineWidth',1)
+plot(tvec,(x(3,:)-x_star(3,:))-twoSigY,'k--','LineWidth',1)
 ylabel('Y [km]')
 subplot(4,1,4); hold on; grid on; grid minor;
-plot(tvec,x(4,:)-x_star(4,:),'b-','LineWidth',2)
+plot(tvec,x(4,:)-x_star(4,:),'b-','LineWidth',1.25)
+plot(tvec,(x(4,:)-x_star(4,:))+twoSigYdot,'k--','LineWidth',1)
+plot(tvec,(x(4,:)-x_star(4,:))-twoSigYdot,'k--','LineWidth',1)
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
-ylim([-1.5 1.5])
+saveas(fig,'Problem4_Error.png','png');
+
+
+
+fig = figure; hold on;
+sgtitle('UKF, State Estimation Errors [Zoomed]')
+set(fig,'Position',[100 100 900 600]);
+subplot(4,1,1); hold on; grid on; grid minor;
+plot(tvec(1001:1031),x(1,1001:1031)-x_star(1,1001:1031),'b-','LineWidth',1.25)
+plot(tvec(1001:1031),(x(1,1001:1031)-x_star(1,1001:1031))+twoSigX(1001:1031),'k--','LineWidth',1)
+plot(tvec(1001:1031),(x(1,1001:1031)-x_star(1,1001:1031))-twoSigX(1001:1031),'k--','LineWidth',1)
+xlim([tvec(1001) tvec(1031)])
+legend('xhat - xstar','+/- 2\sigma')
+ylabel('X [km]')
+subplot(4,1,2); hold on; grid on; grid minor;
+plot(tvec(1001:1031),x(2,1001:1031)-x_star(2,1001:1031),'b-','LineWidth',1.25)
+plot(tvec(1001:1031),(x(2,1001:1031)-x_star(2,1001:1031))+twoSigXdot(1001:1031),'k--','LineWidth',1)
+plot(tvec(1001:1031),(x(2,1001:1031)-x_star(2,1001:1031))-twoSigXdot(1001:1031),'k--','LineWidth',1)
+xlim([tvec(1001) tvec(1031)])
+ylabel('Xdot [km/s]')
+subplot(4,1,3); hold on; grid on; grid minor;
+plot(tvec(1001:1031),x(3,1001:1031)-x_star(3,1001:1031),'b-','LineWidth',1.25)
+plot(tvec(1001:1031),(x(3,1001:1031)-x_star(3,1001:1031))+twoSigY(1001:1031),'k--','LineWidth',1)
+plot(tvec(1001:1031),(x(3,1001:1031)-x_star(3,1001:1031))-twoSigY(1001:1031),'k--','LineWidth',1)
+xlim([tvec(1001) tvec(1031)])
+ylabel('Y [km]')
+subplot(4,1,4); hold on; grid on; grid minor;
+plot(tvec(1001:1031),x(4,1001:1031)-x_star(4,1001:1031),'b-','LineWidth',1.25)
+plot(tvec(1001:1031),(x(4,1001:1031)-x_star(4,1001:1031))+twoSigYdot(1001:1031),'k--','LineWidth',1)
+plot(tvec(1001:1031),(x(4,1001:1031)-x_star(4,1001:1031))-twoSigYdot(1001:1031),'k--','LineWidth',1)
+xlim([tvec(1001) tvec(1031)])
+ylabel('Ydot [km/s]'); xlabel('Time [s]')
+saveas(fig,'Problem4_Error_Zoom.png','png');
 
 
 function [x1,X1,P1,X2]=utx(X,Wm,Wc,n,Q,tvec,t)
