@@ -3,6 +3,9 @@
 
 clear all; close all; clc
 
+%stop if error and show workspace values
+dbstop if error
+
 %this script handles the linearized KF
 
 %load in data provided from Canvas

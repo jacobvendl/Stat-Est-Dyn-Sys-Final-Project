@@ -14,7 +14,7 @@ P = 2*pi*sqrt(r0^3/mu);  % s
 load('orbitdeterm_finalproj_KFdata.mat')
 
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
-dx0 = [0, 0.001, 0, 0.001]';
+dx0 = [0, 0.075, 0, -0.021]';
 Gamma = [0 0; 1 0; 0 0 ; 0 1];
 
 %set process noise
@@ -88,7 +88,7 @@ for s=1:Nsim
     %Extended KF
     x_hat_plus(:,1) = x0;
     P_plus = eye(4)*1e3;
-    Q_KF = eye(2)*1e-8;
+    Q_KF = eye(2)*1e-10;
     for k=1:length(tvec)-1
         %call ode45 to propagate from k to k+1
         ts = tvec(k);
