@@ -182,7 +182,7 @@ for s=1:Nsim
         
         %update state prediction
         dx_hat_plus(:,k+1) = dx_hat_minus(:,k+1) + K*(dy_KF - H*dx_hat_minus(:,k+1));
-        x_hat(:,k) = x_star(:,k) + dx_hat_plus(:,k);
+        x_hat(:,k) = x_nom(:,k) + dx_hat_plus(:,k);
         
         %save off covariance info
         twoSigX(k) = 2*sqrt(P_plus(1,1));
@@ -192,7 +192,7 @@ for s=1:Nsim
         
         %compute NEES and NIS statistics
         NEESsshist(k) = (x_noisy(:,k)-x_hat(:,k))'*inv(P_plus)*(x_noisy(:,k)-x_hat(:,k));
-        NISsshist(k) = dy_KF'*inv(Sk)*dy_KF / (length(dy_KF)/3);
+        NISsshist(k) = dy_KF'*inv(Sk)*dy_KF; %/ (length(dy_KF)/3);
     end
     NEESamps(s,:) = NEESsshist;
     NISamps(s,:) = NISsshist;
@@ -218,7 +218,7 @@ ylabel('NEES Statistics, avg \epsilon_x')
 xlabel('time step k')
 title(sprintf('LKF, NEES Estimation Results, N=%.0f',Nsim))
 legend('NEES @ time k','r_1 bound','r_2 bound')
-%ylim([0 10])
+ylim([0 10])
 saveas(fig,'Problem1_NEES.png','png');
 
 epsNISbar = mean(NISamps,1);
