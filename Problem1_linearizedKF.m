@@ -191,7 +191,7 @@ for s=1:Nsim
         
         %compute NEES and NIS statistics
         NEESsshist(k) = (x_noisy(:,k)-x_hat(:,k))'*inv(P_plus)*(x_noisy(:,k)-x_hat(:,k));
-        NISsshist(k) = dy_KF'*inv(Sk)*dy_KF / (length(dy_KF)/3);
+        NISsshist(k) = dy_KF'*inv(Sk)*dy_KF; %/ (length(dy_KF)/3);
     end
     NEESamps(s,:) = NEESsshist;
     NISamps(s,:) = NISsshist;
@@ -275,25 +275,7 @@ for i=1:12
 end
 saveas(fig,'Problem1_Noisy_Y.png','png');
 
-% figure; hold on;
-% sgtitle(sprintf('Linearized KF plotted against Nonlinear Perturbed Simulation \n dx=[%.4fkm %.4fkm/s %.4fkm %.4fkm/s]',dx0(1),dx0(2),dx0(3),dx0(4)))
-% subplot(4,1,1); hold on; grid on; grid minor;
-% plot(tvec,x_star(1,:),'b-','LineWidth',2)
-% plot(tvec,x_hat(1,:),'r--','LineWidth',2)
-% legend('ode45 perturbed','xhat+')
-% ylabel('X [km]')
-% subplot(4,1,2); hold on; grid on; grid minor;
-% plot(tvec,x_star(2,:),'b-','LineWidth',2)
-% plot(tvec,x_hat(2,:),'r--','LineWidth',2)
-% ylabel('Xdot [km/s]')
-% subplot(4,1,3); hold on; grid on; grid minor;
-% plot(tvec,x_star(3,:),'b-','LineWidth',2)
-% plot(tvec,x_hat(3,:),'r--','LineWidth',2)
-% ylabel('Y [km]')
-% subplot(4,1,4); hold on; grid on; grid minor;
-% plot(tvec,x_star(4,:),'b-','LineWidth',2)
-% plot(tvec,x_hat(4,:),'r--','LineWidth',2)
-% ylabel('Ydot [km/s]'); xlabel('Time [s]')
+
 
 fig = figure; hold on;
 set(fig,'Position',[100 100 900 600]);
@@ -322,6 +304,29 @@ plot(tvec,-twoSigYdot,'k--','LineWidth',1)
 ylabel('Ydot [km/s]'); xlabel('Time [s]')
 ylim([-1 1])
 saveas(fig,'Problem1_Error.png','png');
+
+
+% figure; hold on;
+% sgtitle(sprintf('Linearized KF plotted against Nonlinear Perturbed Simulation \n dx=[%.4fkm %.4fkm/s %.4fkm %.4fkm/s]',dx0(1),dx0(2),dx0(3),dx0(4)))
+% subplot(4,1,1); hold on; grid on; grid minor;
+% plot(tvec,x_star(1,:),'b-','LineWidth',2)
+% plot(tvec,x_hat(1,:),'r--','LineWidth',2)
+% legend('ode45 perturbed','xhat+')
+% ylabel('X [km]')
+% subplot(4,1,2); hold on; grid on; grid minor;
+% plot(tvec,x_star(2,:),'b-','LineWidth',2)
+% plot(tvec,x_hat(2,:),'r--','LineWidth',2)
+% ylabel('Xdot [km/s]')
+% subplot(4,1,3); hold on; grid on; grid minor;
+% plot(tvec,x_star(3,:),'b-','LineWidth',2)
+% plot(tvec,x_hat(3,:),'r--','LineWidth',2)
+% ylabel('Y [km]')
+% subplot(4,1,4); hold on; grid on; grid minor;
+% plot(tvec,x_star(4,:),'b-','LineWidth',2)
+% plot(tvec,x_hat(4,:),'r--','LineWidth',2)
+% ylabel('Ydot [km/s]'); xlabel('Time [s]')
+
+
 
 % figure; hold on
 % sgtitle('Linearized Approx Perturbations vs Time')
