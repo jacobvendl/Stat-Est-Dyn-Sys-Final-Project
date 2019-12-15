@@ -192,10 +192,12 @@ twoSigY(1401) = 2*sqrt(P_plus(3,3));
 twoSigYdot(1401) = 2*sqrt(P_plus(4,4));
 x_hat(:,1401) = x_nom(:,1401) + dx_hat_plus(:,1401);
 
-figure; hold on; grid on; grid minor
-plot(tvec(1:1400),rho_plot,'b-','LineWidth',2)
+fig = figure; hold on; grid on; grid minor
+set(fig,'Position',[100 100 900 600]);
+plot(tvec(1:1400),rho_plot,'b-','LineWidth',1.25)
 xlabel('Time [s]'); ylabel('\delta\rho [km]')
 title('difference in \rho between y_{k+1} and y^*_{k+1}')
+saveas(fig,'Problem1_delRho.png','png');
 
 
 %plot NEES statistics
