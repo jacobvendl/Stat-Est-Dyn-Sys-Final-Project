@@ -72,7 +72,8 @@ Q_process=eye(2)*1e-9;
 R=zeros(3); R(1,1)=0.01;R(2,2)=1;R(3,3)=0.01;
 Svq = chol(Q_process,'lower');
 Svr = chol(R,'lower');
-Omega = [0 0; 1 0; 0 0; 0 1];
+Gamma = [0 0; 1 0; 0 0; 0 1];
+Omega = dt*Gamma;
 
 
 Nsim=50;
@@ -91,7 +92,7 @@ for s=1:Nsim
         wk = (Svq*qk);
         
         %add the noise to the state output
-        x_noisy(:,k) = x_star(:,k) + dt*Omega*wk;
+        x_noisy(:,k) = x_star(:,k) + Omega*wk;
         
         %loop through the stations and simulate linearized measurements
         for i=1:12
@@ -106,9 +107,9 @@ for s=1:Nsim
                 upperBound = thetaCheck+pi/2;
                 lowerBound = thetaCheck-pi/2;
             end
-            if (lowerBound <= phi(i,k) && phi(i,k) <= upperBound) ...
-                    || (lowerBound-2*pi <= phi(i,k) && phi(i,k)<=upperBound-2*pi)... %accomodate phi wrapping
-                    || (lowerBound+2*pi <= phi(i,k) && phi(i,k)<=upperBound+2*pi)
+            if (lowerBound <= phi_noisy(i,k) && phi_noisy(i,k) <= upperBound) ...
+                    || (lowerBound-2*pi <= phi_noisy(i,k) && phi_noisy(i,k)<=upperBound-2*pi)... %accomodate phi wrapping
+                    || (lowerBound+2*pi <= phi_noisy(i,k) && phi_noisy(i,k)<=upperBound+2*pi)
                 
                 rho_noisy(i,k) = sqrt((x_noisy(1,k)-Xs(i,k))^2 + (x_noisy(3,k)-Ys(i,k))^2);
                 rhoDot_noisy(i,k) = ((x_noisy(1,k)-Xs(i,k))*(XD(k)-XDs(i,k)) + (x_noisy(3,k)-Ys(i,k))*(YD(k)-YDs(i,k)))...
@@ -126,9 +127,9 @@ for s=1:Nsim
     end
     
     %Linearized KF
-    Q_KF = eye(2)*1e-8;
+    Q_KF = eye(2)*1e-10;
     R_KF = Rtrue;
-    P_plus = 1e3*eye(4);
+    P_plus = 8e-2*eye(4);
     
     dx_hat_plus = dx0;
     dx_hat_minus = zeros(4,length(tvec));
@@ -154,8 +155,6 @@ for s=1:Nsim
                     R = blkdiag(R_KF,R_KF);
                 end
                 rho_plot(k) = dy_KF(1);
-                rhoDot_plot(k) = dy_KF(2);
-                
             end
         end
         if isempty(H)==1
@@ -176,7 +175,7 @@ for s=1:Nsim
         %save off covariance info
         twoSigX(k) = 2*sqrt(P_plus(1,1));
         twoSigXdot(k) = 2*sqrt(P_plus(2,2));
-        twoSigY(k) = 2*sqrt(P_plus(3,3));
+        twoSigY(k) = 2*sqrt(P_plus(3,3));   
         twoSigYdot(k) = 2*sqrt(P_plus(4,4));
         
         %compute NEES and NIS statistics
@@ -214,7 +213,7 @@ ylabel('NEES Statistics, avg \epsilon_x')
 xlabel('k')
 title(sprintf('LKF, NEES Estimation Results, N=%.0f',Nsim))
 legend('NEES @ time k','r_1 bound','r_2 bound')
-ylim([0 10])
+%ylim([0 10])
 saveas(fig,'Problem1_NEES.png','png');
 
 epsNISbar = mean(NISamps,1);
@@ -372,7 +371,7 @@ end
 
 function [F Omega] = F_Omega_variant(X,Y)
 mu = 398600;        % km^3/s^2
-r0_nom = 6678;          % km
+r0_nom = sqrt(X^2+Y^2);          % km
 dt = 10;
 
 A = [0, 1, 0, 0;

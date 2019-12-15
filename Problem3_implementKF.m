@@ -102,10 +102,10 @@ end
 
 Q_KF = Qtrue;
 R = Rtrue;
-Q_KF = eye(2)*1e-9;
+Q_KF = eye(2)*1e-10;
 
 % Implement Linearized Kalman Filter
-P_plus = eye(4)*1e6;
+P_plus = eye(4)*8e-2;
 dx_hat_plus = dx0;
 dx_hat_minus = zeros(4,length(tvec));
 for k=1:length(tvec)-1
@@ -187,10 +187,10 @@ clear x_hat P_plus twoSigX twoSigXdot twoSigY twoSigYdot
 
 Q_KF = Qtrue;
 R = Rtrue;
-Q_KF = eye(2)*1e-9;
+Q_KF = eye(2)*1e-10;
 
 x_hat(:,1) = x0+dx0;
-P_plus = eye(4)*1e6;
+P_plus = eye(4)*1e-1;
 for k=1:length(tvec)-1
     %call ode45 to propagate from k to k+1
     ts = tvec(k);

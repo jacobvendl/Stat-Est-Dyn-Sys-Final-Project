@@ -15,8 +15,6 @@ rE = 6378;               % km
 wE = 2*pi/86400;         % rad/s
 dt = 10;                 % s
 P = 2*pi*sqrt(r0^3/mu);  % s
-Q = eye(4)*1e-9; Q(1,1)=0; Q(3,3)=0;
-R = eye(3)*1e-2; R(2,2)=1;
 
 %set x0
 x0 = [6678, 0, 0, r0*sqrt(mu/r0^3)]';
@@ -32,14 +30,16 @@ opts = odeset('RelTol',1e-12,'AbsTol',1e-12);
 x_nom=x_nom';
 
 x(:,1) = x0;
-P_plus = eye(4)*1e6;
+P_plus = eye(4)*1e3;
+Q = eye(4)*1e-8; Q(1,1)=0; Q(3,3)=0;
+R = eye(3)*1e-2; R(2,2)=1;
 
 %set UKF inputs
 L=4;  %states
 m=3;  %measurements
-alpha=1e-4;   %TUNE
+alpha=1e-2;   %TUNE
 ki=0;         %TUNE
-beta=2;       %TUNE
+beta=1.5;       %TUNE
 lambda=alpha^2*(L+ki)-L;                    
 c=L+lambda;                                
 Wm=[lambda/c 0.5/c+zeros(1,2*L)];           

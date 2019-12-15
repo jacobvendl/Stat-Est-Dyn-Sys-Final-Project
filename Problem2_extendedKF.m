@@ -88,7 +88,7 @@ for s=1:Nsim
     
     %Extended KF
     x_hat_plus(:,1) = x0;
-    P_plus = eye(4)*1e3;
+    P_plus = eye(4)*1e-1;
     Q_KF = eye(2)*1e-10;
     for k=1:length(tvec)-1
         %call ode45 to propagate from k to k+1
